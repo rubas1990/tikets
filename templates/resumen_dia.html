@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}🧭 Resumen del Día{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container mt-4">
+    <div class="card shadow-lg border-0 mb-4">
+        <div class="card-body bg-gradient text-blue" style="background: linear-gradient(90deg, #0d6efd, #00bcd4);">
+            <h4 class="mb-0">🧭 Resumen del Día — {{ hoy }}</h4>
+            <small>Una mirada a tu desempeño y foco diario</small>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row text-center mb-4">
+        <div class="col-md-3">
+            <div class="card p-3 shadow-sm">
+                <h5>🎯 Subtareas cerradas</h5>
+                <h2>{{ subtareas_cerradas }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 shadow-sm">
+                <h5>⏱️ Horas efectivas</h5>
+                <h2>{{ horas_totales|round(2) }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 shadow-sm">
+                <h5>💼 Proyectos activos</h5>
+                <h2>{{ proyectos|length }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 shadow-sm">
+                <h5>⚡ Score promedio</h5>
+                <h2>{{ score_prom }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💬 Reflexión del día -->
+    <div class="card mt-4 shadow-sm border-0">
+        <div class="card-body">
+            <h5>💬 Reflexión del día</h5>
+
+            <p>
+                {% if subtareas_cerradas >= record_val %}
+                🏆 ¡Nuevo récord! Cerraste {{ subtareas_cerradas }} subtareas hoy.
+                {% else %}
+                Has cerrado {{ subtareas_cerradas }} subtareas hoy.
+                Tu récord sigue en {{ record_val }} ({{ record_fecha }}).
+                {% endif %}
+                Promedio de score {{ score_prom }} — nivel de eficiencia alto.
+            </p>
+
+            {% if subtareas_lista %}
+            <hr>
+            <h6 class="text-muted mb-2">📋 Subtareas cerradas hoy:</h6>
+            <ul class="list-group list-group-flush">
+                {% for s in subtareas_lista %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ s.nombre_subtarea }}</strong><br>
+                        <small class="text-muted">Proyecto: {{ s.nombre_proyecto }}</small>
+                    </div>
+                    <span class="badge bg-success rounded-pill">Cerrada</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mb-0">No cerraste subtareas hoy, pero mañana puedes romper tu récord 💪</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+
+    <!-- Proyectos del día -->
+    <h5 class="mb-3">📂 Proyectos del día</h5>
+    <table class="table table-hover align-middle">
+        <thead class="table-primary">
+            <tr>
+                <th>Proyecto</th>
+                <th>Estado</th>
+                <th>Horas</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in proyectos %}
+            <tr>
+                <td>{{ p.nombre }}</td>
+                <td>{{ p.status }}</td>
+                <td>{{ p.horas|round(2) }}</td>
+                <td>{{ p.score|round(1) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Gráfica -->
+    <div class="mt-5">
+        <h5>📈 Histórico de cierres (últimos 7 días)</h5>
+        <canvas id="grafica" height="120"></canvas>
+    </div>
+
+    <!-- 🔮 Predicción del día siguiente -->
+    <div class="card mt-3 shadow-sm border-0">
+        <div class="card-body">
+            <h5>🔮 Predicción para mañana</h5>
+
+            {% set diferencia = record_val - subtareas_cerradas %}
+            {% if subtareas_cerradas == 0 %}
+            {% set prob = 15 %}
+            {% elif subtareas_cerradas >= record_val %}
+            {% set prob = 95 %}
+            {% else %}
+            {% set prob = (subtareas_cerradas / record_val * 100) | round(0) %}
+            {% endif %}
+
+            <p>
+                Basado en tu desempeño de hoy ({{ subtareas_cerradas }} subtareas cerradas,
+                promedio de score {{ score_prom }}),
+                tienes una <strong>{{ prob }}%</strong> de probabilidad de
+                <strong>{% if subtareas_cerradas >= record_val %}mantener{% else %}romper{% endif %}</strong> tu récord
+                mañana. 🏆
+            </p>
+
+            <p class="mb-2">
+                {% if score_prom >= 85 %}
+                💡 Tu nivel de energía y precisión fue excelente.
+                Mañana podrías cerrar más subtareas si mantienes sesiones de enfoque de 90 minutos con descansos cortos.
+                {% elif score_prom >= 75 %}
+                ⚙️ Buen rendimiento general.
+                Te conviene empezar con el proyecto más desafiante para aprovechar tu concentración matutina.
+                {% else %}
+                😴 Hoy tuviste altibajos.
+                Mañana prioriza tareas ligeras y revisa señales técnicas antes de los cierres.
+                {% endif %}
+            </p>
+
+            <p class="text-muted small">
+                🔁 *Predicción generada con base en tus registros de tiempo, cierres y eficiencia diaria.*
+            </p>
+        </div>
+    </div>
+
+
+
+    <script>
+        const ctx = document.getElementById('grafica');
+
+        // ✅ Convertimos listas Jinja a formato JSON válido
+        const labels = {{ historico | map(attribute = 'fecha') | list | tojson }};
+        const valores = {{ historico | map(attribute = 'cerradas') | list | tojson }};
+
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: 'Subtareas cerradas',
+                data: valores,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.3)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#0d6efd'
+            }]
+        };
+
+        new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                plugins: {
+                    legend: { display: true, labels: { color: '#333' } }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#333' } },
+                    x: { ticks: { color: '#333' } }
+                }
+            }
+        });
+    </script>
+
+    {% endblock %}

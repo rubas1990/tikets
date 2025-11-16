@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Paquetes disponibles{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-primary text-white">🧩 Paquetes de subtareas disponibles</div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for p in paquetes %}
+            <a href="{{ url_for('main.crear_paquete', paquete_id=p['id'], project_id=project_id) }}"
+                class="list-group-item list-group-item-action">
+                <strong>{{ p['nombre'] }}</strong><br>
+                <small class="text-muted">{{ p['descripcion'] }}</small>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

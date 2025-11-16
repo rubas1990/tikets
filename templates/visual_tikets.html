@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}📂 Visualización de Tickets{% endblock %}
+{% block content %}
+
+<style>
+    /* 🎨 Diseño principal */
+    .project-folder {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        color: white;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-top: 16px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        transition: 0.25s;
+    }
+
+    .project-folder:hover {
+        transform: translateY(-2px);
+    }
+
+    .kr-group {
+        background: #f9f9f9;
+        border-left: 4px solid #0d6efd;
+        border-radius: 8px;
+        margin: 8px 0;
+        padding: 10px 14px;
+    }
+
+    /* 🎫 Ticket */
+    .ticket-item {
+        display: block;
+        background: white;
+        border-radius: 6px;
+        margin: 6px 0;
+        padding: 8px 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        transition: 0.25s;
+        text-decoration: none;
+        color: #212529;
+    }
+
+    .ticket-item:hover {
+        background: #f0f8ff;
+        transform: translateX(3px);
+        text-decoration: none;
+    }
+
+    /* 🔎 Buscador */
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        padding: 8px 14px;
+    }
+
+    .search-box input {
+        border: none;
+        outline: none;
+        flex: 1;
+        font-size: 1rem;
+    }
+
+    .search-box i {
+        font-size: 1.3rem;
+        color: #0d6efd;
+    }
+</style>
+
+<div class="container mt-3 mb-5">
+    <h4 class="mb-4">📂 Visualización jerárquica de Tickets por Resultado Clave (KR)</h4>
+
+    <!-- 🔎 Filtro de búsqueda -->
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="Buscar proyecto...">
+    </div>
+
+    <!-- 🧩 Listado de proyectos -->
+    <div id="projectContainer">
+        {% for p in data %}
+        <div class="project-wrapper mb-2">
+            <div class="project-folder" data-bs-toggle="collapse" data-bs-target="#project{{ loop.index }}">
+                <i class="bi bi-folder2-open"></i> <strong>{{ p.proyecto }}</strong>
+            </div>
+
+            <div id="project{{ loop.index }}" class="collapse ms-3 mt-2">
+                {% for kr, subtareas in p.krs.items() %}
+                <div class="kr-group">
+                    <h6><i class="bi bi-bullseye"></i> {{ kr }}</h6>
+                    {% for t in subtareas %}
+                    <!-- 🔗 Ticket con enlace a la edición -->
+                    <a href="{{ url_for('edit.edit_tiket', tiket_id=t.id) }}"
+                        class="ticket-item d-flex justify-content-between align-items-center">
+                        <div>
+                            🎫 <strong>{{ t.numero_de_queja }}</strong> — {{ t.nombre_subtarea }}
+                            {% if t.cerrado %}
+                            <span class="badge bg-success">Cerrado</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Abierto</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="text-muted small">Dif: {{ t.dificultad }}</span> |
+                            <span class="text-muted small">Pri: {{ t.prioridad or '-' }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 🧠 Script de búsqueda -->
+<script>
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        const filter = this.value.toLowerCase();
+        const projects = document.querySelectorAll('.project-wrapper');
+
+        projects.forEach(project => {
+            const title = project.querySelector('.project-folder strong').textContent.toLowerCase();
+            project.style.display = title.includes(filter) ? '' : 'none';
+        });
+    });
+</script>
+
+{% endblock %}

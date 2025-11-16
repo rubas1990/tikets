@@ -1,0 +1,108 @@
+<div id="ticketSidebar" style="position:fixed;right:0;top:70px;width:320px;height:calc(100vh - 80px);
+background:linear-gradient(180deg,#f8faff 0%,#e6f2ff 100%);
+border-left:2px solid #007bff22;box-shadow:-4px 0 12px rgba(0,0,0,0.08);
+padding:22px 18px;overflow-y:auto;z-index:900;transform:translateX(100%);
+transition:transform 0.35s ease-in-out;">
+
+    <!-- 🔹 Header del Ticket -->
+    <h5 style="font-weight:700;color:#007bff;">🎫 {{ tiket['nombre_subtarea'] }}</h5>
+    <p><strong>Proyecto:</strong> {{ tiket['proyecto_nombre'] }}</p>
+    <p><strong>Ticket:</strong> {{ tiket['numero_de_queja'] }}</p>
+
+    <hr>
+    <p><strong>Eficiencia:</strong> {{ eficiencia }}%</p>
+
+    <!-- 🎯 Bloque de KR -->
+    <hr>
+    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-bullseye"></i> Resultado Clave (KR)</h6>
+    <p><strong>KR:</strong> {{ kr_nombre }}</p>
+    <p><strong>Categoría:</strong> {{ kr_categoria }}</p>
+    <p><strong>Peso:</strong> {{ kr_peso }}</p>
+
+    {% if kr_comentarios %}
+    <div class="alert alert-light border-start border-3 border-primary p-2 mb-2">
+        <i class="bi bi-chat-text"></i> {{ kr_comentarios }}
+    </div>
+    {% endif %}
+
+    {% if kr_resultado %}
+    <div class="alert alert-success border-start border-3 border-success p-2">
+        <i class="bi bi-graph-up-arrow"></i>
+        <strong>Resultado:</strong> {{ kr_resultado }}
+    </div>
+    {% endif %}
+
+    <!-- ⚙️ Tecnología y desempeño promedio -->
+    <hr>
+    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cpu"></i> Tecnología y Desempeño</h6>
+    <ul class="list-unstyled small mb-3">
+        <li>🧩 <strong>Tecnología:</strong> {{ tecnologia }}</li>
+        <li>📊 <strong>Usos previos:</strong> {{ total_usos }}</li>
+        <li>⏱️ <strong>Promedio cierre:</strong> {{ promedio_min }} min</li>
+        <li>🎯 <strong>Dificultad media:</strong>
+            {% if promedio_dificultad %}
+            {{ promedio_dificultad }}/5
+            {% else %}
+            <span class="text-muted">No definida</span>
+            {% endif %}
+        </li>
+    </ul>
+
+
+    <!-- 🧾 Lista de otros tickets con el mismo KR -->
+    <hr>
+    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-journal-text"></i> Otros tickets con este KR</h6>
+
+    {% if usos_previos and usos_previos|length > 1 %}
+    <ul class="list-group small">
+        {% for u in usos_previos %}
+        {% if u.id != tiket['id'] %}
+        <li class="list-group-item py-2 px-2">
+            <strong>{{ u['nombre_subtarea'] }}</strong><br>
+            <span class="text-muted">#{{ u['numero_de_queja'] }}</span><br>
+            🧩 {{ u['tecnologia'] }}<br>
+            ⏱️ {{ u['total_min'] or 0 }} min
+            {% if u['cerrado'] %}<span class="badge bg-success">Cerrado</span>
+            {% else %}<span class="badge bg-warning text-dark">Abierto</span>{% endif %}
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted small">Aún no hay más tickets asociados a este KR.</p>
+    {% endif %}
+
+
+    <!-- 💓 Estado emocional -->
+    {% if estado_emocional %}
+    <hr>
+    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-heart-pulse"></i> Estado emocional</h6>
+    <div class="alert 
+        {% if '🚨' in estado_emocional.estado %}alert-danger
+        {% elif '⚠️' in estado_emocional.estado %}alert-warning
+        {% else %}alert-success{% endif %}">
+        <strong>{{ estado_emocional.estado }}</strong><br>
+        {{ estado_emocional.mensaje }}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 🧭 Botón flotante -->
+<button id="toggleSidebarBtn" title="Ver resumen rápido" style="position:fixed;right:15px;bottom:25px;background:#007bff;border:none;border-radius:50%;
+width:52px;height:52px;color:white;font-size:1.5rem;z-index:950;box-shadow:0 4px 10px rgba(0,0,0,0.15);">
+    <i class="bi bi-layout-sidebar-inset"></i>
+</button>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebar = document.getElementById("ticketSidebar");
+        const toggleBtn = document.getElementById("toggleSidebarBtn");
+        toggleBtn.addEventListener("click", () => {
+            const visible = sidebar.style.transform === "translateX(0%)";
+            sidebar.style.transform = visible ? "translateX(100%)" : "translateX(0%)";
+            toggleBtn.innerHTML = visible
+                ? '<i class="bi bi-layout-sidebar-inset"></i>'
+                : '<i class="bi bi-x-lg"></i>';
+        });
+    });
+</script>

@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+{% block title %}Proyecto {{ project['nombre'] }} - Soporte{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    /* 🌈 Diseño general adaptable */
+    .project-header {
+        background: linear-gradient(90deg, #0d6efd, #00bfff);
+        color: #fff;
+        border-radius: 16px;
+        padding: 18px 22px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .project-header h3 {
+        font-weight: 700;
+        font-size: 1.4rem;
+    }
+
+    /* 🟩 Tarjetas limpias */
+    .card-modern {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .scrollable-section {
+        max-height: 320px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .scrollable-section::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .scrollable-section::-webkit-scrollbar-thumb {
+        background: rgba(120, 120, 120, 0.3);
+        border-radius: 4px;
+    }
+
+    /* 🟨 Tickets */
+    .ticket-card {
+        border-left: 6px solid transparent;
+        border-radius: 10px;
+        transition: transform 0.2s;
+    }
+
+    .ticket-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .ticket-open {
+        border-left-color: #ffc107;
+    }
+
+    .ticket-closed {
+        border-left-color: #28a745;
+        opacity: 0.95;
+    }
+
+    /* 🟣 Responsive */
+    @media (max-width: 992px) {
+        .project-header {
+            text-align: center;
+        }
+
+        .project-header .text-end {
+            text-align: center !important;
+            margin-top: 12px;
+        }
+
+        .scrollable-section {
+            max-height: 240px;
+        }
+    }
+</style>
+
+<!-- 🟦 Encabezado del proyecto -->
+<div class="project-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h3 class="mb-1">{{ project['nombre'] }}</h3>
+            <small>
+                <i class="bi bi-hash"></i> {{ project['numero_de_queja'] }} —
+                <i class="bi bi-geo-alt-fill text-warning"></i> {{ project['sitio'] }}
+            </small>
+
+            <div class="mt-2 small">
+                <i class="bi bi-flag-fill text-warning"></i> {{ project['prioridad'] }} |
+                <i class="bi bi-calendar-event text-light"></i> {{ project['fecha_apertura']|fmt_dt }}
+            </div>
+        </div>
+
+        <div class="text-end d-flex flex-wrap align-items-center justify-content-end gap-2">
+            <span class="badge rounded-pill px-3 py-2 fw-semibold text-white
+    {% if project['status']=='Trabajando' %}bg-success
+    {% elif project['status']=='Planeado' %}bg-info
+    {% elif project['status']=='Detenido' %}bg-danger
+    {% else %}bg-secondary{% endif %}">
+                {{ project['status'] }}
+            </span>
+
+            {% if session.get('user_role') == 'admin' %}
+            <!-- ✏️ Botón Editar -->
+            <a href="{{ url_for('project.project_edit', project_id=project['id']) }}"
+                class="btn btn-light btn-sm shadow-sm">
+                ✏️ Editar
+            </a>
+            {% endif %}
+
+            <!-- 📋 Nuevo botón para Tickets -->
+            <a href="{{ url_for('tiket.tiket_list', project_id=project['id'], filter='all') }}"
+                class="btn btn-outline-light btn-sm shadow-sm"
+                style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;">
+                📋 Tickets
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- 🔹 Datos generales -->
+<div class="card card-modern mb-4">
+    <div class="card-body">
+        <div class="row text-center text-md-start g-3">
+            <div class="col-6 col-md-3"><strong>📅 Apertura:</strong><br>{{ project['fecha_apertura']|fmt_dt }}</div>
+            <div class="col-6 col-md-3"><strong>📅 Cierre:</strong><br>{{ project['fecha_cierre']|fmt_dt or '—' }}</div>
+            <div class="col-6 col-md-3"><strong>💰 Ahorro:</strong><br>${{ project['ahorro'] }}</div>
+            <div class="col-6 col-md-3"><strong>💸 Gasto:</strong><br>${{ project['gasto'] }}</div>
+        </div>
+        <div class="progress mt-3">
+            <div class="progress-bar bg-info" style="width: {{ avance }}%;">{{ avance }}%</div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔧 Comentarios, Subtareas y Tickets en una sola fila -->
+<div class="row g-4">
+    <!-- 💬 Comentarios -->
+    <div class="col-lg-4 col-md-6">
+        <div class="card card-modern h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                💬
+                <input id="buscadorComentarios" class="form-control form-control-sm" placeholder="Buscar..."
+                    style="max-width: 160px;">
+            </div>
+            <div class="card-body">
+                <div class="scrollable-section mb-3">
+                    <pre id="comentariosTexto" class="p-2 bg-light rounded"
+                        style="white-space: pre-wrap;">{{ project['comentarios'] or '' }}</pre>
+                </div>
+                <form method="post">
+                    <textarea name="comment_text" rows="3" class="form-control mb-2"
+                        placeholder="Agregar comentario..."></textarea>
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-chat-left-text"></i> Guardar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚀 Botón para abrir el Playbook -->
+    <div class="col-lg-4 col-md-6">
+        <div class="card card-modern h-100 d-flex align-items-center justify-content-center">
+            <button class="btn btn-primary btn-lg rounded-3 shadow-sm" data-bs-toggle="modal"
+                data-bs-target="#newTicketPlaybook">
+                🚀 Nueva Subtarea (Alt + N)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 🎫 Tickets -->
+    <div class="col-lg-4 col-md-12">
+        <div class="card card-modern h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                🎫 Tickets
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <label class="small text-muted mb-0">Ver:</label>
+                    <select name="filter" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="all" {% if filter_status=='all' %}selected{% endif %}>Todas</option>
+                        <option value="open" {% if filter_status=='open' %}selected{% endif %}>Abiertas</option>
+                        <option value="closed" {% if filter_status=='closed' %}selected{% endif %}>Cerradas</option>
+                    </select>
+                </form>
+            </div>
+
+            <div class="card-body scrollable-section">
+                {% if subtasks %}
+                <div class="row g-3">
+                    {% for s in subtasks %}
+                    <div class="col-12">
+                        <div
+                            class="card ticket-card {% if s['cerrado'] == 1 %}ticket-closed{% else %}ticket-open{% endif %}">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-1">
+                                    <a href="{{ url_for('tiket.tiket_detail', subtask_id=s['id']) }}"
+                                        class="text-decoration-none">
+                                        {{ s['nombre_subtarea'] }}
+                                    </a>
+                                </h6>
+                                <p class="small mb-1 text-muted">#{{ s['numero_de_queja'] }}</p>
+                                <p class="small mb-2">
+                                    <strong>Apertura:</strong> {{ s['fecha_apertura']|fmt_dt }}<br>
+                                    <strong>Cierre:</strong> {{ s['fecha_cierre']|fmt_dt or '—' }}
+                                </p>
+                                <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                                    {% if s['cerrado'] == 1 %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i>
+                                        Cerrado</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark"><i
+                                            class="bi bi-exclamation-circle-fill"></i> Abierto</span>
+                                    {% if s['trabajando'] %}
+                                    <span class="badge bg-primary"><i class="bi bi-play-fill"></i> En progreso</span>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <em>No hay subtareas aún.</em>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if session.get('analisis_ticket') %}
+<div class="modal fade" id="analisisModal" tabindex="-1" aria-labelledby="analisisLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header"
+                style="background:linear-gradient(90deg,#007bff,#00c6ff);color:#fff;border-top-left-radius:16px;border-top-right-radius:16px;">
+                <h5 class="modal-title fw-bold" id="analisisLabel">📊 Análisis de Datos del Ticket Creado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                {% set a = session['analisis_ticket'] %}
+                <p><strong>🧾 Proyecto:</strong> {{ a.nombre_proyecto }}</p>
+                <p><strong>🎫 Ticket:</strong> {{ a.nombre_tiket }}</p>
+                <p><strong>🏷️ Prioridad:</strong> {{ a.prioridad }}</p>
+                <p><strong>🧩 Categoría:</strong> {{ a.categoria }}</p>
+                <p><strong>⏱️ Duración estimada:</strong> {{ a.estimacion }} h</p>
+                <p><strong>📅 Inicio probable:</strong> {{ a.inicio_prob }}</p>
+                <p><strong>⏰ Fin probable:</strong> {{ a.fin_prob }}</p>
+                <p><strong>📉 Probabilidad de atraso:</strong> {{ a.prob_atraso }}</p>
+                <p><strong>⚙️ Causa más común:</strong> {{ a.causa }}</p>
+                <p><strong>💪 Carga del operador:</strong> {{ a.carga }}</p>
+                <p><strong>📈 Dificultad:</strong>
+                    <span
+                        class="badge {% if a.dificultad=='Alta' %}bg-danger{% elif a.dificultad=='Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ a.dificultad }}
+                    </span>
+                </p>
+                <div class="alert alert-info small mt-3 mb-2">
+                    💬 <strong>Consejo:</strong> {{ a.consejo }}
+                </div>
+                <hr>
+                <p class="small text-muted mb-1"><i class="bi bi-lightning-charge-fill text-warning"></i> Tickets
+                    abiertos: {{ a.abiertos }}</p>
+                <p class="small text-muted mb-0"><i class="bi bi-bar-chart"></i> Eficiencia actual: {{ a.eficiencia }}
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('analisisModal');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            setTimeout(() => modal.show(), 300);
+        }
+    });
+</script>
+
+{% set _ = session.pop('analisis_ticket', None) %}
+{% endif %}
+
+
+<!-- 🎯 MODAL PLAYBOOK DE INICIO DE TICKET -->
+<div class="modal fade" id="newTicketPlaybook" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0 rounded-4" style="animation: fadeIn 0.3s ease-in-out;">
+            <div class="modal-header border-0 pb-0">
+                <h4 class="fw-bold text-primary mb-0">🚀 Nuevo Ticket / Subtarea</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body pt-3">
+                <!-- 📘 Guía de categorías -->
+                <div class="dropdown mb-3 text-end">
+                    <button class="btn btn-outline-primary btn-sm fw-semibold dropdown-toggle" type="button"
+                        id="dropdownRules" data-bs-toggle="dropdown" aria-expanded="false">
+                        📘 Ver Guía de categorías
+                    </button>
+                    <div class="dropdown-menu p-3 shadow-lg border-0" aria-labelledby="dropdownRules"
+                        style="max-height: 400px; overflow-y: auto; width: 480px;">
+                        <p class="small text-muted mb-2">
+                            El sistema asigna categorías automáticamente según palabras clave en la descripción.
+                        </p>
+                        <ul class="list-group list-group-flush small">
+                            {% for r in reglas %}
+                            <li class="list-group-item px-0 py-1">
+                                <strong>{{ r.categoria }} ({{ r.total }} palabra{{ 's' if r.total != 1 else ''
+                                    }}):</strong>
+                                <span class="text-muted">{{ r.palabras }}</span>
+                            </li>
+                            {% else %}
+                            <li class="list-group-item px-0 py-1 text-muted">No hay reglas definidas.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 📋 Formulario -->
+                <form id="newTicketForm" method="POST"
+                    action="{{ url_for('project.subtask_new', project_id=project['id']) }}">
+
+
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="paqueteDropdown"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                🧩 Crear paquete de subtareas
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="paqueteDropdown">
+                                {% for p in paquetes %}
+                                <li>
+                                    <a class="dropdown-item"
+                                        href="{{ url_for('main.crear_paquete', paquete_id=p['id'], project_id=project['id']) }}">
+                                        {{ p['nombre'] }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li><span class="dropdown-item text-muted">No hay paquetes definidos</span></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+
+
+
+
+
+
+
+                    <!-- 🎫 Nombre -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">🎫 Nombre del ticket</label>
+                        <input type="text" class="form-control form-control-lg" name="nombre_subtarea"
+                            placeholder="Ejemplo: Validar sensor de temperatura" required>
+                    </div>
+
+                    <!-- ⚙️ Datos técnicos -->
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">⏱ Tiempo objetivo (h)</label>
+                            <select name="tiempo_objetivo_horas" class="form-select">
+                                <option value="0.5" selected>0.5</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="24">24</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">💡 Dificultad</label>
+                            <select name="dificultad" class="form-select">
+                                <option value="1">Fácil 🚶‍♂️</option>
+                                <option value="2">Media 🚴‍♂️</option>
+                                <option value="3">Alta 🧗‍♂️</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">⚙️ Tecnología</label>
+                            <select name="tecnologia" class="form-select">
+                                <option value="Python">Python</option>
+                                <option value="Flask">Flask</option>
+                                <option value="SQL Server">SQL Server</option>
+                                <option value="Bootstrap">Bootstrap</option>
+                                <option value="Industrial Data">Industrial Data</option>
+                                <option value="Integracion industrial">Integracion industrial</option>
+                                <option value="PHP">PHP</option>
+
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">🏷️ Categoría</label>
+                            <select name="categoria" class="form-select">
+                                <option value="">Automática 🤖</option>
+                                {% for r in reglas %}
+                                <option value="{{ r.categoria }}">{{ r.categoria }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+
+                    <!-- 🎯 KR (Objetivo medible) -->
+                    <!-- 🎯 Resultado clave (KR) -->
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">🎯 Resultado clave (KR)</label>
+                        <select name="kr" id="kr" class="form-select">
+                            <option value="">(Sin OKR)</option>
+
+                            {% set categorias = okrs | groupby('categoria') %}
+                            {% for grupo in categorias %}
+                            {% set categoria = grupo.grouper %}
+                            <optgroup label="{{ categoria }}">
+                                {% for item in grupo.list %}
+                                <option value="{{ item['kr'] }}">{{ item['kr'] }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+
+
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">🚀 Crear ticket</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("newTicketForm");
+        const modalEl = document.getElementById("newTicketPlaybook");
+        const modal = new bootstrap.Modal(modalEl);
+
+        form?.addEventListener("submit", (e) => {
+            const toast = document.createElement("div");
+            toast.textContent = "✅ Ticket creado correctamente";
+            Object.assign(toast.style, {
+                position: "fixed", bottom: "25px", right: "25px",
+                background: "rgba(0,0,0,0.85)", color: "white",
+                padding: "10px 18px", borderRadius: "8px",
+                fontSize: "14px", zIndex: 3000, opacity: 0,
+                transition: "opacity 0.3s ease"
+            });
+            document.body.appendChild(toast);
+            toast.style.opacity = "1";
+            setTimeout(() => toast.style.opacity = "0", 1500);
+            setTimeout(() => toast.remove(), 1800);
+            setTimeout(() => modal.hide(), 1000);
+            setTimeout(() => form.reset(), 1200);
+        });
+
+        // Shortcut Alt/⌥ + N
+        window.addEventListener("keydown", (e) => {
+            const isMac = navigator.platform.toUpperCase().includes("MAC");
+            if (isMac && e.altKey && e.key.toLowerCase() === "n") {
+                e.preventDefault();
+                modal.show();
+            }
+        });
+    });
+</script>
+
+
+
+
+
+{% endblock %}

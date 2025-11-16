@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Estado General{% endblock %}
+{% block content %}
+
+<style>
+    /* === Estructura general === */
+    .estado-header {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        color: white;
+        border-radius: 14px;
+        padding: 14px 20px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .estado-header h4 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .card-modern {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .card-header {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .table th,
+    .table td {
+        vertical-align: middle;
+        font-size: 0.95rem;
+    }
+
+    .alert-info {
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+
+    @media (max-width: 991px) {
+        .table-responsive {
+            max-height: none;
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<!-- 🔹 Header superior -->
+<div class="estado-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-activity me-2"></i>Estado General</h4>
+    <span class="small text-light">Última revisión: {{ ahora|fmt_dt }}</span>
+</div>
+
+<!-- 🔹 Proyectos activos -->
+{% if proyectos_activos %}
+<div class="card card-modern mb-4 border-warning border-3">
+    <div class="card-header bg-warning text-dark">
+        <i class="bi bi-lightning-charge-fill me-1"></i> Proyectos activos ({{ proyectos_activos|length }})
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th style="width:70px;">ID</th>
+                        <th>Nombre</th>
+                        <th># Queja</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in proyectos_activos %}
+                    <tr>
+                        <td>{{ p['id'] }}</td>
+                        <td class="fw-semibold text-primary">
+                            <a href="{{ url_for('project.project_detail', project_id=p['id']) }}"
+                                class="text-decoration-none">
+                                {{ p['nombre'] }}
+                            </a>
+                        </td>
+                        <td>{{ p['numero_de_queja'] }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('project.project_detail', project_id=p['id']) }}"
+                                class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <div>✅ No hay proyectos activos.</div>
+</div>
+{% endif %}
+
+<!-- 🔹 Subtareas activas -->
+{% if subtareas_activas %}
+<div class="card card-modern mb-4 border-danger border-3">
+    <div class="card-header bg-danger text-white">
+        <i class="bi bi-clock-history me-1"></i> Subtareas con tiempo activo ({{ subtareas_activas|length }})
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Subtarea</th>
+                        <th>Proyecto</th>
+                        <th>Inicio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subtareas_activas %}
+                    <tr>
+                        <td class="fw-semibold text-primary">{{ s['username'] }}</td>
+                        <td>{{ s['nombre_subtarea'] }}</td>
+                        <td>{{ s['proyecto'] }}</td>
+                        <td>{{ s['inicio']|fmt_dt }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <div>✅ No hay subtareas con tiempo activo.</div>
+</div>
+{% endif %}
+
+<!-- 🔹 Aviso de tareas en curso -->
+{% if hay_tareas_corriendo %}
+<div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="bi bi-alarm me-2 fs-5"></i>
+    <div>⏱️ Hay una o más subtareas trabajando actualmente.</div>
+</div>
+{% endif %}
+
+
+
+
+<!-- 📈 Historial de hidratación -->
+<div class="card card-modern mb-4 border-info border-3">
+    <div class="card-header bg-info text-white">
+        <i class="bi bi-graph-up-arrow me-2"></i>Historial de los últimos 5 días toma de agua
+    </div>
+    <div class="card-body">
+        <canvas id="graficaAgua" height="120"></canvas>
+    </div>
+</div>
+
+<!-- Librería Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById('graficaAgua').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ fechas| tojson }},
+        datasets: [{
+            label: 'Progreso diario (%)',
+            data: {{ progreso_dias| tojson }},
+        backgroundColor: function (context) {
+            const val = context.raw;
+            if (val < 40) return '#dc3545'; // rojo
+            if (val < 80) return '#ffc107'; // amarillo
+            return '#28a745'; // verde
+        },
+        borderRadius: 8,
+        borderWidth: 0
+            }]
+        },
+        options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                    display: true,
+                    text: '% Cumplimiento diario'
+                }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ctx.parsed.y + '% de meta'
+                }
+            }
+        }
+    }
+    });
+});
+</script>
+
+
+
+<!-- 💧 Estado de hidratación -->
+<div class="card card-modern mb-4 border-info border-3">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <div><i class="bi bi-droplet-half me-2"></i>Hidratación diaria</div>
+        <small>{{ agua['fecha'] or 'Hoy' }}</small>
+    </div>
+    <div class="card-body text-center">
+
+        <!-- 💧 Botella simbólica -->
+        <div class="bottle mx-auto mb-2">
+            <div class="water" style="height: {{ porcentaje }}%;"></div>
+        </div>
+
+        <h6 class="fw-bold">{{ agua['cantidad_actual'] }}/{{ agua['objetivo'] }} botellas ({{ porcentaje }}%)</h6>
+
+        {% if porcentaje < 40 %} <div class="text-danger fw-semibold">🚨 ¡Toma agua ya!
+    </div>
+    {% elif porcentaje < 80 %} <div class="text-warning fw-semibold">💪 Buen ritmo, sigue hidratándote.
+</div>
+{% else %}
+<div class="text-success fw-semibold">🌊 Hidratación perfecta. Tu cuerpo te lo agradece.</div>
+{% endif %}
+</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Soporte{% endblock %}
+{% block content %}
+
+<style>
+    /* === Layout general === */
+    .dashboard-header {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        color: white;
+        border-radius: 14px;
+        padding: 16px 20px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+
+    .dashboard-header h4 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .dashboard-header select {
+        border-radius: 8px;
+        min-height: 40px;
+        font-size: 0.95rem;
+    }
+
+    .card-summary {
+        border: none;
+        border-radius: 14px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        min-height: 110px;
+    }
+
+    .card-summary:hover {
+        transform: translateY(-3px);
+    }
+
+    .card-summary .display-6 {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 280px;
+    }
+
+    .table-responsive {
+        max-height: 55vh;
+        overflow-y: auto;
+        border-radius: 12px;
+    }
+
+    tr.proyecto-activo td {
+        background: linear-gradient(90deg, #fff8e1 0%, #fff3cd 100%) !important;
+    }
+
+    tr.proyecto-activo td:first-child span {
+        animation: blinkStar 1.5s infinite;
+    }
+
+    @keyframes blinkStar {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.6;
+            transform: scale(1.2);
+        }
+    }
+
+    @media (max-width: 991px) {
+        .col-md-3 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .table-responsive {
+            max-height: none;
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<!-- 🔹 Encabezado -->
+<div class="dashboard-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h4>
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="{{ url_for('dashboard.dashboard_emocional') }}" class="btn btn-outline-primary btn-sm">
+            🧠 Ver análisis emocional por categoría
+        </a>
+
+        <!-- 🔹 Año -->
+        <label class="form-label mb-0 me-1">Año:</label>
+        <select name="year" class="form-select" style="width:110px">
+            {% for y in available_years %}
+            <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- 🔹 Filtro por rango de fechas -->
+        <label class="form-label mb-0 ms-2">From:</label>
+        <input type="date" name="from" value="{{ fecha_inicio or '' }}" class="form-control" style="width:160px">
+
+        <label class="form-label mb-0 ms-2">To:</label>
+        <input type="date" name="to" value="{{ fecha_fin or '' }}" class="form-control" style="width:160px">
+
+        <!-- 🔹 Botones -->
+        <button class="btn btn-primary ms-2">Apply</button>
+        <a href="{{ url_for('dashboard.dashboard', all=1) }}" class="btn btn-outline-secondary">All</a>
+
+        <!-- 🔹 Panel Ejecutivo -->
+        <a href="{{ url_for('reports.exec_monthly_view') }}" class="btn btn-outline-info ms-2">
+            📊 Executive Panel
+        </a>
+    </form>
+
+</div>
+
+<!-- 🔹 Tarjetas resumen -->
+<div class="row g-3 mb-3">
+    {% set cards = [
+    ('primary', 'Total tickets', metrics['total_tikets']),
+    ('warning', 'Open tickets', metrics['total_abiertas']),
+    ('success', 'Closed tickets', metrics['total_cerradas']),
+    ('info', 'Open projects', metrics['total_proyectos_abiertos']),
+    ('secondary', 'Closed projects', metrics['total_proyectos_cerrados']),
+    ('dark', 'Total savings', metrics['total_ahorro']|default(0)|round(2)),
+    ('gradient', 'Global Efficiency', metrics['promedio_eficiencia']|default(0)|round(1)),
+    ('success', 'Performance', metrics['promedio_avance']|default(0)|round(1))
+    ] %}
+
+    {% for color, title, value in cards %}
+    <div class="col-md-3 col-sm-6">
+        <div class="card card-summary {% if color == 'gradient' %}border-0 text-white{% else %}border-{{color}}{% endif %}"
+            style="{% if color == 'gradient' %}background: linear-gradient(90deg, #00c6ff, #007bff);{% endif %}">
+            <div class="card-body">
+                <div class="display-6 {% if color != 'gradient' %}text-{{color}}{% endif %}">{{ value }}</div>
+                <div class="text-muted {% if color == 'gradient' %}text-white-50{% endif %}">{{ title }}</div>
+                {% if title == 'Global Efficiency' %}
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar 
+            {% if value >= 100 %}bg-success
+            {% elif value >= 80 %}bg-warning
+            {% else %}bg-danger{% endif %}" style="width: {{ value }}%;"></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 🔹 Gráfica -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Subtasks created vs. closed ({{ year }})</h5>
+        <div class="chart-container">
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- 🔹 Tabla resumen -->
+<div class="card shadow-sm mb-5">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h5 class="card-title mb-0">Summary by project</h5>
+            <div class="d-flex align-items-center gap-2">
+                <label for="filtroPorcentaje" class="form-label fw-bold mb-0">Filtrar:</label>
+                <select id="filtroPorcentaje" class="form-select form-select-sm" style="width: 180px;">
+                    <option value="todos">Todos</option>
+                    <option value="completos">Closed</option>
+                    <option value="incompletos">Open</option>
+                </select>
+                <small class="text-muted ms-2" id="contadorProyectos"></small>
+            </div>
+        </div>
+
+        {% if metrics['por_proyecto'] %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle" id="tablaProyectos">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th style="width: 40px;">★</th>
+                        <th>Project</th>
+                        <th>Priority</th>
+                        <th>Serial</th>
+                        <th>Total tickets</th>
+                        <th>Closed</th>
+                        <th>Open</th>
+                        <th>Hours</th>
+                        <th>% Progress</th>
+                        <th>Efficiency</th>
+                        <th>Prediction</th> <!-- 🧠 Nueva columna -->
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for r in metrics['por_proyecto'] %}
+                    <tr class="{% if r['status'] == 'Trabajando' %}proyecto-activo{% endif %}">
+                        <!-- Estrella si está trabajando -->
+                        <td class="text-center">
+                            {% if r['status'] == 'Trabajando' %}
+                            <span class="text-warning fs-5">⭐</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Nombre del proyecto -->
+                        <td>
+                            <a href="{{ url_for('tiket.tiket_list') }}?project_id={{ r['project_id'] }}&filter=all"
+                                class="fw-semibold text-decoration-none">
+                                {{ r['nombre'] }}
+                            </a>
+                        </td>
+
+                        <!-- Prioridad visual -->
+                        <td>
+                            {% if r['prioridad'] == '1' %}
+                            <span class="badge bg-danger">1</span>
+                            {% elif r['prioridad'] == '2' %}
+                            <span class="badge bg-warning text-dark">2</span>
+                            {% elif r['prioridad'] == '3' %}
+                            <span class="badge bg-info text-dark">3</span>
+                            {% elif r['prioridad'] == '4' %}
+                            <span class="badge bg-primary">4</span>
+                            {% elif r['prioridad'] == '5' %}
+                            <span class="badge bg-secondary">5</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Serial -->
+                        <td>{{ r['numero_de_queja'] }}</td>
+
+                        <!-- Totales -->
+                        <td>{{ r['subtareas_total'] }}</td>
+                        <td>{{ r['subtareas_cerradas'] }}</td>
+                        <td>{{ r['subtareas_abiertas'] }}</td>
+
+                        <!-- Horas trabajadas -->
+                        <td>{{ r['horas_trabajadas'] or '—' }}</td>
+
+                        <!-- Avance -->
+                        <td class="avance" data-avance="{{ r['avance_pct'] }}">
+                            <div class="progress" style="height: 18px;">
+                                <div class="progress-bar
+                        {% if r['avance_pct'] >= 100 %}bg-success
+                        {% elif r['avance_pct'] >= 50 %}bg-info
+                        {% else %}bg-warning{% endif %}" style="width: {{ r['avance_pct'] }}%;">
+                                    {{ r['avance_pct'] }}%
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Eficiencia -->
+                        <td>
+                            {% if r['eficiencia_pct'] %}
+                            {% if r['eficiencia_pct'] > 100 %}
+                            <span class="badge bg-success">{{ r['eficiencia_pct'] }}%</span>
+                            {% elif r['eficiencia_pct'] >= 80 %}
+                            <span class="badge bg-warning text-dark">{{ r['eficiencia_pct'] }}%</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ r['eficiencia_pct'] }}%</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="badge bg-secondary">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 🧠 Predicción -->
+                        <td>
+                            {% if 'Low' in r['prediccion'] %}
+                            <span class="text-danger fw-semibold">{{ r['prediccion'] }}</span>
+                            {% elif 'Near' in r['prediccion'] %}
+                            <span class="text-warning fw-semibold">{{ r['prediccion'] }}</span>
+                            {% elif 'Closed' in r['prediccion'] %}
+                            <span class="text-success fw-semibold">{{ r['prediccion'] }}</span>
+                            {% else %}
+                            <span class="text-muted">{{ r['prediccion'] }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+        {% else %}
+        <em>Sin proyectos aún.</em>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🔹 Gráfica de Categorías -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Tickets por categoría</h5>
+        <div class="chart-container" style="height:280px;">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- === Scripts === -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('barChart');
+    const data = {
+        labels: {{ chart_labels | tojson }},
+    datasets: [
+        {
+            label: 'Created',
+            data: {{ chart_creadas | tojson }},
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      },
+        {
+            label: 'Closed',
+            data: {{ chart_cerradas | tojson }},
+        backgroundColor: 'rgba(75, 192, 75, 0.6)',
+        borderColor: 'rgba(75, 192, 75, 1)',
+        borderWidth: 1
+      }
+    ]
+  };
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    // Filtro de proyectos
+    document.addEventListener("DOMContentLoaded", () => {
+        const filtro = document.getElementById("filtroPorcentaje");
+        const filas = document.querySelectorAll("#tablaProyectos tbody tr");
+        const contador = document.getElementById("contadorProyectos");
+
+        function aplicarFiltro() {
+            const valor = filtro.value;
+            let visibles = 0;
+
+            filas.forEach(fila => {
+                const avance = parseFloat(fila.querySelector(".avance").dataset.avance) || 0;
+                let mostrar = false;
+
+                if (valor === "todos") mostrar = true;
+                else if (valor === "completos" && avance >= 100) mostrar = true;
+                else if (valor === "incompletos" && avance < 100) mostrar = true;
+
+                fila.style.display = mostrar ? "" : "none";
+                if (mostrar) visibles++;
+            });
+
+            contador.textContent = `Mostrando ${visibles} proyecto(s) (${valor})`;
+        }
+
+        filtro.addEventListener("change", aplicarFiltro);
+        aplicarFiltro();
+    });
+</script>
+
+
+
+
+<!-- === 🧩 Gráfico de pastel de categorías === -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const ctxPie = document.getElementById('pieChart');
+        if (!ctxPie) return; // seguridad por si no existe el canvas
+
+        const labels = {{ metrics["categorias_labels"] | tojson
+    }};
+    const values = {{ metrics["categorias_values"] | tojson }};
+
+    if (labels.length === 0 || values.length === 0) {
+        console.warn("⚠️ No hay datos de categorías para mostrar.");
+        return;
+    }
+
+    const colors = [
+        '#007bff', '#28a745', '#ffc107', '#dc3545',
+        '#17a2b8', '#6f42c1', '#20c997', '#fd7e14', '#343a40', '#9e9e9e'
+    ];
+
+    new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors.slice(0, labels.length),
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 13 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const val = context.parsed;
+                            const pct = ((val / total) * 100).toFixed(1);
+                            return `${context.label}: ${val} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

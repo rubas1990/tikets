@@ -1,0 +1,60 @@
+<!-- 🧩 Sidebar izquierdo: Checklist de verificación técnica -->
+<div id="checklistSidebar" style="
+    position:fixed; left:0; top:70px;
+    width:320px; height:calc(100vh - 80px);
+    background:linear-gradient(180deg,#f9fcff 0%,#e8f5ff 100%);
+    border-right:2px solid #007bff22;
+    box-shadow:4px 0 12px rgba(0,0,0,0.08);
+    padding:20px 18px; overflow-y:auto;
+    z-index:900; transform:translateX(-100%);
+    transition:transform 0.35s ease-in-out;">
+
+    <h5 style="font-weight:700;color:#007bff;">🧩 Checklist técnico</h5>
+    <p class="text-muted small">Confirma los puntos antes de cerrar el ticket.</p>
+
+    <div id="checklistContainer" class="list-group">
+        {% for item in checklist_items %}
+        <label class="list-group-item d-flex align-items-center">
+            <input type="checkbox" class="form-check-input me-2 checklist-item">
+            <span>{{ item }}</span>
+        </label>
+        {% else %}
+        <p class="text-muted">⚠️ No hay checklist definido para este KR.</p>
+        {% endfor %}
+    </div>
+
+    <div class="alert alert-warning mt-3" id="checklistAlert">
+        🔒 Marca todos los puntos para habilitar el cierre del ticket.
+    </div>
+</div>
+
+<!-- 🟩 Botón flotante izquierdo -->
+<button id="toggleChecklistBtn" title="Ver checklist técnico" style="position:fixed;left:15px;bottom:25px;
+    background:#0d6efd;border:none;border-radius:50%;
+    width:52px;height:52px;color:white;font-size:1.4rem;
+    z-index:950;box-shadow:0 4px 10px rgba(0,0,0,0.15);">
+    <i class="bi bi-check2-square"></i>
+</button>
+
+
+<script>
+    // ======================================================
+    // 🟩 Panel izquierdo — Checklist técnico
+    // ======================================================
+    document.addEventListener("DOMContentLoaded", () => {
+        const checklistSidebar = document.getElementById("checklistSidebar");
+        const checklistBtn = document.getElementById("toggleChecklistBtn");
+
+        if (!checklistSidebar || !checklistBtn) return;
+
+        checklistBtn.addEventListener("click", () => {
+            const visible = checklistSidebar.style.transform === "translateX(0%)";
+            checklistSidebar.style.transform = visible ? "translateX(-100%)" : "translateX(0%)";
+            checklistBtn.innerHTML = visible
+                ? '<i class="bi bi-check2-square"></i>'
+                : '<i class="bi bi-x-lg"></i>';
+        });
+    });
+
+
+</script>

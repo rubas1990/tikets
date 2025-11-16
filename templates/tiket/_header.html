@@ -1,0 +1,33 @@
+<div class="card shadow-lg border-0 mb-3">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center" style="background: linear-gradient(90deg, #66b3ff, #99ccff);
+              color: #005c66;  /* Azul marino para texto */
+              font-weight: 600;">
+
+        <div class="header-title text-truncate pe-3">
+            <h1> 🏗️ Trabajando en: </h1>
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="card shadow-lg border-0 mb-3">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center" style="background: linear-gradient(90deg, #66b3ff, #99ccff);
+              color: #003366;  /* Azul marino para texto */
+              font-weight: 600;">
+
+        <div class="header-title text-truncate pe-3">
+            🎫 {{ tiket['numero_de_queja'] }} — {{ tiket['nombre_subtarea'] }}
+        </div>
+
+        <div class="header-buttons d-flex flex-wrap gap-2">
+            <a href="{{ url_for('tiket.tiket_list', project_id=tiket['project_id'], filter='all') }}"
+                class="btn btn-light btn-sm px-3 text-primary fw-semibold shadow-sm">
+                📋 Tickets
+            </a>
+            <a href="{{ url_for('project.project_detail', project_id=tiket['project_id']) }}"
+                class="btn btn-light btn-sm px-3 text-primary fw-semibold shadow-sm">
+                📁 Proyecto
+            </a>
+        </div>
+    </div>
+</div>

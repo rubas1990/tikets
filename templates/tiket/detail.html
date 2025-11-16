@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Detalle del Ticket — {{ tiket['nombre_subtarea'] }}{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+    {% include "tiket/_header.html" %}
+
+    <div class="row g-3 align-items-stretch mt-3">
+        {% include "tiket/_timer.html" %}
+    </div>
+
+    <div class="d-flex justify-content-between gap-4 side-by-side mt-4">
+        {% include "tiket/_comments.html" %}
+        {% include "tiket/_history.html" %}
+        {% include "tiket/_checklist.html" %}
+    </div>
+
+    {% include "tiket/_sidebar.html" %}
+</div>
+
+<!-- JS global -->
+<script src="{{ url_for('static', filename='js/tiket_detail.js') }}"></script>
+{% endblock %}

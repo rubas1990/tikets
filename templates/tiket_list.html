@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Subtareas (Tickets) - Soporte{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    /* 🌈 Mejoras visuales generales */
+    h4 {
+        font-weight: 700;
+    }
+
+    .card {
+        border-radius: 14px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .table {
+        font-size: 0.95rem;
+    }
+
+    .table thead th {
+        white-space: nowrap;
+    }
+
+    /* 🔹 Scroll táctil fluido */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 🌿 Fila activa animada (sin cambio) */
+    table.table tbody tr.fila-activa>* {
+        background: linear-gradient(90deg, #d8f5e3 0%, #e8fff0 100%) !important;
+        transition: background-color 0.6s ease-in-out;
+        animation: filaPulse 4s infinite;
+    }
+
+    @keyframes filaPulse {
+
+        0%,
+        100% {
+            background-color: #e8fff0;
+        }
+
+        50% {
+            background-color: #d6f8e0;
+        }
+    }
+
+    .fila-activa td:first-child span {
+        color: #28a745 !important;
+        animation: blinkStar 1.5s infinite;
+    }
+
+    @keyframes blinkStar {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.6;
+            transform: scale(1.2);
+        }
+    }
+
+    /* 🧭 Responsive: en pantallas pequeñas, la tabla se simplifica */
+    @media (max-width: 768px) {
+        .table thead {
+            display: none;
+        }
+
+        .table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            border: 1px solid #eee;
+        }
+
+        .table tbody td {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border: none;
+        }
+
+        .table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #666;
+        }
+    }
+</style>
+
+<!-- 🟦 Header -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4>🧾 Lista de Subtareas (Tickets)</h4>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Filtro por proyecto -->
+        <form method="get" class="d-flex align-items-center flex-wrap gap-2">
+            <label class="fw-semibold">Proyecto:</label>
+            <select name="project_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                {% for p in proyectos %}
+                <option value="{{ p['id'] }}" {% if project_id==p['id'] %}selected{% endif %}>
+                    {{ p['nombre'] }} ({{ p['numero_de_queja'] }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <!-- Filtro por estado -->
+            <label class="fw-semibold">Estado:</label>
+            <select name="filter" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if filter_status=='all' %}selected{% endif %}>Todas</option>
+                <option value="open" {% if filter_status=='open' %}selected{% endif %}>Abiertas</option>
+                <option value="closed" {% if filter_status=='closed' %}selected{% endif %}>Cerradas</option>
+            </select>
+        </form>
+
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-speedometer"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- 🧩 Tabla principal -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if subtareas %}
+        <div class="table-responsive">
+            <table id="tablaSubtareas" class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;">★</th>
+                        <th>⏱️ Tiempo objetivo</th>
+                        <th>Proyecto</th>
+                        <th># Ticket</th>
+                        <th>Nombre Subtarea</th>
+                        <th>Status</th>
+                        <th>Tiempo Real</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subtareas %}
+                    <tr class="{% if s['trabajando'] %}fila-activa{% endif %}">
+                        <td class="text-center" data-label="★">
+                            {% if s['trabajando'] %}
+                            <span class="text-warning fs-5">⭐</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="⏱️ Tiempo objetivo">
+                            {% if s['tiempo_objetivo_horas'] %}
+                            {% if s['tiempo_objetivo_horas'] <= 8 %} <span class="badge bg-success">{{
+                                s['tiempo_objetivo_horas'] }} h</span>
+                                {% elif s['tiempo_objetivo_horas'] <= 24 %} <span class="badge bg-warning text-dark">{{
+                                    s['tiempo_objetivo_horas'] }} h</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ s['tiempo_objetivo_horas'] }} h</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="badge bg-secondary">—</span>
+                                    {% endif %}
+                        </td>
+
+                        <td data-label="Proyecto">
+                            <a href="{{ url_for('project.project_detail', project_id=s['proyecto_id']) }}"
+                                class="text-decoration-none">
+                                {{ s['proyecto_nombre'] }}
+                            </a>
+                        </td>
+
+                        <td data-label="# Ticket">
+                            <a href="{{ url_for('tiket.tiket_detail', subtask_id=s['id']) }}"
+                                class="fw-semibold text-decoration-none">
+                                {{ s['numero_de_queja'] }}
+                            </a>
+                        </td>
+
+                        <td data-label="Subtarea">{{ s['nombre_subtarea'] }}</td>
+
+                        <td data-label="Status">
+                            {% if s['cerrado'] == 1 %}
+                            <span class="badge bg-success">Cerrado</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Abierto</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Tiempo real">
+                            {{ s['tiempo'] or '—' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 🔹 Paginación -->
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div>
+                Mostrar
+                <select id="rowsPerPage" class="form-select form-select-sm d-inline-block" style="width:auto;">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select> filas
+            </div>
+            <div id="pagination" class="d-flex align-items-center gap-2"></div>
+        </div>
+
+        {% else %}
+        <p class="text-muted">No hay subtareas registradas aún.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🔹 Script de paginación (sin cambios funcionales) -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.getElementById("tablaSubtareas");
+        if (!table) return;
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const rowsPerPageSelect = document.getElementById("rowsPerPage");
+        const paginationDiv = document.getElementById("pagination");
+
+        let currentPage = 1;
+        let rowsPerPage = parseInt(rowsPerPageSelect.value);
+
+        function renderTable() {
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            rows.forEach((row, index) => {
+                row.style.display = (index >= start && index < end) ? "" : "none";
+            });
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            paginationDiv.innerHTML = "";
+
+            const prevBtn = document.createElement("button");
+            prevBtn.textContent = "← Anterior";
+            prevBtn.className = "btn btn-sm btn-outline-secondary";
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { currentPage--; renderTable(); };
+            paginationDiv.appendChild(prevBtn);
+
+            const pageInfo = document.createElement("span");
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            paginationDiv.appendChild(pageInfo);
+
+            const nextBtn = document.createElement("button");
+            nextBtn.textContent = "Siguiente →";
+            nextBtn.className = "btn btn-sm btn-outline-secondary";
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => { currentPage++; renderTable(); };
+            paginationDiv.appendChild(nextBtn);
+        }
+
+        rowsPerPageSelect.addEventListener("change", () => {
+            rowsPerPage = parseInt(rowsPerPageSelect.value);
+            currentPage = 1;
+            renderTable();
+        });
+
+        renderTable();
+    });
+</script>
+{% endblock %}

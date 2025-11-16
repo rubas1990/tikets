@@ -1,0 +1,918 @@
+{% extends "base.html" %}
+{% block title %}Detalle del Ticket - {{ tiket['nombre_subtarea'] }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tiket_detail.css') }}">
+<script defer src="{{ url_for('static', filename='js/tiket_detail.js') }}"></script>
+
+<style>
+    /* 🎨 Fondo general */
+    body {
+        background-color: #f8faff;
+    }
+
+    /* 🧭 Tarjetas */
+    .card {
+        border-radius: 14px;
+        transition: all 0.25s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    /* 🔹 Header superior */
+    .card-header {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        color: #fff;
+        font-weight: 600;
+        border-top-left-radius: 14px !important;
+        border-top-right-radius: 14px !important;
+    }
+
+    .header-buttons .btn {
+        border-radius: 8px;
+        transition: 0.2s;
+    }
+
+    .header-buttons .btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* 🕓 Reloj circular */
+    .timer-container {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        margin: 0 auto;
+    }
+
+    .progress-ring__background {
+        stroke-dasharray: 365;
+    }
+
+    .progress-ring__circle {
+        transition: stroke-dashoffset 0.3s linear;
+        transform: rotate(-90deg);
+        transform-origin: center;
+    }
+
+    .timer-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #007bff;
+    }
+
+    /* 🟩 Botones grandes */
+    .btn-xl {
+        font-size: 1.1rem;
+        padding: 14px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-success {
+        background: linear-gradient(90deg, #28a745, #35d67a);
+        border: none;
+    }
+
+    .btn-danger {
+        background: linear-gradient(90deg, #ff5252, #ff6b81);
+        border: none;
+    }
+
+    .btn-outline-secondary {
+        border-width: 2px;
+    }
+
+    /* 💬 Comentarios y scroll */
+    .scrollable-box {
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 5px;
+    }
+
+    .scrollable-box::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .scrollable-box::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+    }
+
+    /* 🧱 Paneles combinados */
+    .side-by-side {
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 992px) {
+        .side-by-side {
+            flex-direction: column;
+        }
+
+        .btn-xl {
+            width: 100%;
+        }
+
+        .timer-container {
+            width: 110px;
+            height: 110px;
+        }
+    }
+
+    /* 🎬 Overlay de cierre */
+    #closingOverlay {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        text-align: center;
+    }
+
+    #closingOverlay img {
+        width: 140px;
+        height: 140px;
+    }
+
+    #closingOverlay span {
+        margin-top: 10px;
+        font-size: 1.3rem;
+        color: #007bff;
+        font-weight: 600;
+    }
+
+
+    /* 🔥 Fondo dinámico del contenedor del reloj */
+    .timer-container.timer-active {
+        background-color: #fff3b0 !important;
+        /* Amarillo elegante */
+        border-radius: 50% !important;
+        padding: 10px;
+        /* Separa círculo del borde */
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.6) !important;
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* 🏎️ Fondo dinámico + Animación */
+    .timer-container.timer-active {
+        background-color: #fff3b0 !important;
+        border-radius: 50% !important;
+        padding: 10px;
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.9);
+        animation: pulse-yellow 1.2s infinite ease-in-out;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+    /* 🔥 Cuando ya superó el objetivo */
+    .timer-container.over-goal {
+        background-color: #ffb3b3 !important;
+        box-shadow: 0 0 25px rgba(255, 0, 0, 0.9) !important;
+        animation: pulse-red 0.8s infinite alternate;
+    }
+
+    /* ✨ Efectos de pulsación */
+    @keyframes pulse-yellow {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.06);
+        }
+    }
+
+    @keyframes pulse-red {
+        0% {
+            transform: scale(1.02) rotate(-1deg);
+        }
+
+        50% {
+            transform: scale(1.08) rotate(1deg);
+        }
+
+        100% {
+            transform: scale(1.03) rotate(-1deg);
+        }
+    }
+
+    /* 🎛️ Animación al pausar */
+    .timer-container.pause-effect {
+        background-color: #dcdcdc !important;
+        animation: none !important;
+        box-shadow: 0 0 10px rgba(150, 150, 150, 0.7);
+        transition: all 0.4s ease-in-out;
+    }
+</style>
+
+<!-- 🟦 HEADER -->
+<div id="closingOverlay">
+    <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjF4dTR4bGwzaHc4cHB0czY1a2ZuZWMyMThyNDAwOWw3cWRrOGRtOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YRuFixSNWFVcXaxpmX/giphy.gif"
+        alt="Cerrando...">
+    <span>Buen trabajo...</span>
+</div>
+
+<div class="container mt-3">
+    <div class="card shadow-lg border-0 mb-3">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <div class="header-title text-truncate pe-3">
+                🎫 {{ tiket['numero_de_queja'] }} — {{ tiket['nombre_subtarea'] }}
+            </div>
+            <div class="header-buttons d-flex flex-wrap gap-2">
+                <a href="{{ url_for('tiket.tiket_list', project_id=tiket['project_id'], filter='all') }}"
+                    class="btn btn-outline-light btn-sm px-3">📋 Tickets</a>
+                <a href="{{ url_for('project.project_detail', project_id=tiket['project_id']) }}"
+                    class="btn btn-outline-light btn-sm px-3">📁 Proyecto</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🧩 CUERPO PRINCIPAL -->
+    <div class="row g-3 align-items-stretch">
+        <!-- 🧱 Columna 1 -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm border-0 h-100 text-center p-3 d-flex justify-content-center">
+                <h4 class="fw-bold mb-3 text-primary">🎫 {{ tiket['numero_de_queja'] }}</h4>
+                <h2 class="ticket-title mb-3">{{ tiket['nombre_subtarea'] }}</h2>
+
+                <!-- 🔹 Card de rendimiento -->
+                <div class="card border-0 shadow-sm mx-auto" style="width: 90%; max-width: 300px;">
+                    <div class="card-body py-3 px-4">
+                        <h6 class="text-muted fw-bold mb-2 text-start">⏱ Rendimiento</h6>
+                        <div class="progress" style="height: 18px;">
+                            <div class="progress-bar
+                {% if eficiencia < 80 %}bg-danger
+                {% elif eficiencia < 120 %}bg-warning
+                {% else %}bg-success{% endif %}" role="progressbar" style="width: {{ avance }}%;">
+                                {{ avance }}%
+                            </div>
+                        </div>
+                        <div class="mt-2 small text-muted text-start">
+                            <strong>Trabajado:</strong> {{ tiempo_trabajado }}h<br>
+                            <strong>Objetivo:</strong> {{ tiempo_objetivo }}h<br>
+                            <strong>Eficiencia:</strong> {{ eficiencia }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⚙️ Columna 2 -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm border-0 h-100 text-center p-3">
+                <div class="info-box p-3 text-start">
+                    <p><strong>🏗️ Proyecto:</strong> <span class="text-primary">{{ tiket['proyecto_nombre'] }}</span>
+                    </p>
+                    <p><strong>⚙️ Estado Proyecto:</strong>
+                        <span
+                            class="badge {% if tiket['proyecto_status']=='Trabajando' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ tiket['proyecto_status'] }}
+                        </span>
+                    </p>
+                    <p><strong>🎫 Estado Ticket:</strong>
+                        {% if tiket['cerrado'] == 1 %}
+                        <span class="badge bg-success">Cerrado</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Abierto</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>📅 Fecha de creación:</strong> {{ tiket['fecha_apertura']|fmt_dt }}</p>
+                </div>
+
+                <!-- ⏳ Reloj -->
+                <div class="timer-container mt-3">
+                    <svg class="progress-ring" width="130" height="130">
+                        <circle class="progress-ring__background" stroke="#e0e0e0" stroke-width="8" fill="transparent"
+                            r="58" cx="65" cy="65" />
+                        <circle class="progress-ring__circle" stroke="#00c6ff" stroke-width="8" fill="transparent"
+                            r="58" cx="65" cy="65" />
+                    </svg>
+                    <div class="timer-text" id="circularTimer">00:00</div>
+                </div>
+                <small class="text-muted">Tiempo total: {{ total_min }} min</small>
+            </div>
+        </div>
+
+        <!-- 🎛️ Columna 3 -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm border-0 h-100 text-center p-4 d-flex flex-column justify-content-center gap-4">
+                {% if tiket['cerrado'] == 0 %}
+                {% if en_trabajo %}
+                <form method="post" action="{{ url_for('tiket.subtask_timer_toggle', subtask_id=tiket['id']) }}">
+                    <button class="btn btn-danger btn-xl w-100">⏸ Break</button>
+                </form>
+                <button class="btn btn-outline-secondary btn-xl shadow-sm w-100" disabled>🔒 Detén el tiempo para
+                    cerrar</button>
+
+                {% else %}
+                <!-- 🧩 Botón que abre el modal checklist -->
+                <button type="button" class="btn btn-success btn-xl w-100" data-bs-toggle="modal"
+                    data-bs-target="#checklistInicioModal">
+                    ▶️ Trabajar
+                </button>
+
+                {% if tiket['comentarios'] and tiket['comentarios']|length > 5 %}
+                <form method="post" id="closeForm"
+                    action="{{ url_for('project.subtask_toggle', subtask_id=tiket['id']) }}">
+                    <button id="closeButton" class="btn btn-outline-secondary btn-xl w-100">✅ Cerrar Ticket</button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary btn-xl w-100" disabled>🔒 Agrega un comentario para
+                    cerrar</button>
+                <p class="text-danger small mt-2 mb-0">
+                    ⚠️ Debes agregar al menos un comentario antes de cerrar este ticket.
+                </p>
+                {% endif %}
+
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 💬 Comentarios e historial -->
+    <div class="d-flex justify-content-between gap-4 side-by-side mt-4">
+        <!-- Comentarios -->
+        <div class="card flex-fill shadow-sm">
+            <div class="card-header text-center bg-light fw-bold">🗒️ Centro de comentarios</div>
+            <div
+                class="card-body {% if tiket['cerrado'] == 1 or tiket['proyecto_status'] != 'Trabajando' %}disabled-area{% endif %}">
+                <div class="scrollable-box">
+                    {% if tiket['comentarios'] %}
+                    <pre
+                        style="white-space: pre-wrap; font-size:14px; background:#f9f9f9; padding:10px; border-radius:8px;">
+{{ tiket['comentarios'] }}
+          </pre>
+                    {% else %}
+                    <p class="text-muted text-center">Sin comentarios aún.</p>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                {% if tiket['cerrado'] == 0 and tiket['proyecto_status'] == 'Trabajando' and en_trabajo %}
+                <form method="post" action="{{ url_for('tiket.subtask_comment_add', subtask_id=tiket['id']) }}">
+                    <textarea name="comentario" rows="3" class="form-control mb-2"
+                        placeholder="✏️ Escribe un nuevo comentario..."></textarea>
+                    <button class="btn btn-primary w-100 btn-comment">💬 Agregar comentario</button>
+                </form>
+                {% else %}
+                <p class="text-danger text-center fw-bold mt-2 mb-0">
+                    ❌ Solo puedes agregar comentarios mientras el ticket está en ejecución.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="card flex-fill shadow-sm">
+            <div class="card-header text-center bg-light fw-bold">🕓 Historial de trabajo</div>
+            <div class="card-body">
+                <div class="scrollable-box">
+                    {% if sesiones %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Inicio</th>
+                                    <th>Fin</th>
+                                    <th>Duración (min)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in sesiones %}
+                                <tr>
+                                    <td>{{ s['username'] }}</td>
+                                    <td>{{ s['inicio']|fmt_dt }}</td>
+                                    <td>{{ s['fin']|fmt_dt if s['fin'] else "⏳ En curso" }}</td>
+                                    <td>{{ s['duracion_min'] or "—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Sin registros de tiempo aún.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ CHECKLIST DE VERIFICACIÓN -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-primary text-white fw-semibold">
+                🧩 Checklist de verificación técnica
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    Confirma que todos los puntos de control están revisados antes de cerrar el ticket.
+                </p>
+
+                <div id="checklistContainer" class="list-group">
+                    {% for item in checklist_items %}
+                    <label class="list-group-item d-flex align-items-center">
+                        <input type="checkbox" class="form-check-input me-2 checklist-item">
+                        <span>{{ item }}</span>
+                    </label>
+                    {% else %}
+                    <p class="text-muted">⚠️ No hay checklist definido para esta tecnología.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="alert alert-warning mt-3" id="checklistAlert">
+                    🔒 Marca todos los puntos para habilitar el cierre del ticket.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const closeForm = document.getElementById("closeForm");
+        const overlay = document.getElementById("closingOverlay");
+        if (closeForm) {
+            closeForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                overlay.style.display = "flex";
+                setTimeout(() => closeForm.submit(), 4000);
+            });
+        }
+
+        {% if en_trabajo and inicio_actual %}
+        const startTime = new Date("{{ inicio_actual }}");
+        const timerContainer = document.querySelector(".timer-container");
+        const circularText = document.getElementById("circularTimer");
+        const circle = document.querySelector(".progress-ring__circle");
+
+        const objetivoMin = Number("{{ tiempo_objetivo * 60 }}");
+        const radius = 52;
+        const circumference = 2 * Math.PI * radius;
+
+        circle.style.strokeDasharray = `${circumference}`;
+        circle.style.strokeDashoffset = `${circumference}`;
+
+        // 🏁 Activar modo F1 desde inicio
+        timerContainer.classList.add("timer-active");
+
+        function updateClock() {
+            const now = new Date();
+            let diff = Math.floor((now - startTime) / 1000);
+
+            // Mostrar mm:ss
+            const mins = String(Math.floor(diff / 60)).padStart(2, "0");
+            const secs = String(diff % 60).padStart(2, "0");
+            circularText.textContent = `${mins}:${secs}`;
+
+            // Progreso circular
+            const cycle = diff % 60;
+            const offset = circumference - (cycle / 60) * circumference;
+            circle.style.strokeDashoffset = offset;
+
+            // 🔥 Cambiar a modo rojo si supera objetivo
+            if (diff >= objetivoMin && !timerContainer.classList.contains("over-goal")) {
+                timerContainer.classList.remove("timer-active");
+                timerContainer.classList.add("over-goal");
+            }
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+        {% endif %}
+
+
+    });
+</script>
+
+
+
+<!-- 🔹 BOTÓN FLOTANTE PARA PANEL LATERAL -->
+<button id="toggleSidebarBtn" title="Ver resumen rápido" style="position: fixed; right: 15px; bottom: 25px; background: #007bff; border: none; border-radius: 50%;
+    width: 52px; height: 52px; color: white; font-size: 1.5rem; z-index: 950;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+    <i class="bi bi-layout-sidebar-inset"></i>
+</button>
+
+<!-- 🔹 PANEL LATERAL DE RESUMEN -->
+<div id="ticketSidebar" style="position: fixed; right: 0; top: 70px; width: 300px; height: calc(100vh - 80px);
+    background: linear-gradient(180deg, #f8faff 0%, #e6f2ff 100%);
+    border-left: 2px solid #007bff22; box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+    padding: 20px 18px; overflow-y: auto; z-index: 900;
+    transform: translateX(100%); transition: transform 0.35s ease-in-out;">
+
+    <h5 style="font-weight:700; color:#007bff;">🎫 {{ tiket['nombre_subtarea'] }}</h5>
+    <p><strong>Proyecto:</strong> {{ tiket['proyecto_nombre'] }}</p>
+    <p><strong>Ticket:</strong> {{ tiket['numero_de_queja'] }}</p>
+    <p><strong>Estado:</strong>
+        {% if tiket['cerrado'] == 1 %}
+        <span class="badge bg-success">Cerrado</span>
+        {% else %}
+        <span class="badge bg-warning text-dark">Abierto</span>
+        {% endif %}
+    </p>
+
+    <hr>
+
+    <!-- 🔹 Eficiencia -->
+    <p class="fw-semibold text-secondary mb-1">⏱ Eficiencia</p>
+    <div style="height:10px; border-radius:5px; background:#e9ecef;">
+        <div style="height:10px; border-radius:5px;
+            width:{{ avance }}%;
+            background-color:
+                {% if eficiencia < 80 %}#dc3545
+                {% elif eficiencia < 120 %}#ffc107
+                {% else %}#28a745{% endif %};
+            transition:width 0.4s;">
+        </div>
+    </div>
+
+    <div class="mt-2 d-flex justify-content-between"><span>Objetivo:</span><span>{{ tiempo_objetivo }}h</span></div>
+    <div class="d-flex justify-content-between"><span>Trabajado:</span><span>{{ tiempo_trabajado }}h</span></div>
+    <div class="d-flex justify-content-between"><span>Eficiencia:</span><span>{{ eficiencia }}%</span></div>
+
+    <hr>
+
+    <!-- 🔹 Estado del proyecto -->
+    <p><strong>Proyecto:</strong>
+        <span class="{% if tiket['proyecto_status']=='Trabajando' %}text-success{% else %}text-muted{% endif %}">
+            {{ tiket['proyecto_status'] }}
+        </span>
+    </p>
+
+    {% if tiket['cerrado'] == 0 %}
+    <div class="mt-3">
+        {% if en_trabajo %}
+        <form method="post" action="{{ url_for('tiket.subtask_timer_toggle', subtask_id=tiket['id']) }}">
+            <button class="btn btn-danger w-100">⏸ Break</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('tiket.subtask_timer_toggle', subtask_id=tiket['id']) }}">
+            <button class="btn btn-success w-100">▶️ Trabajar</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('tiket.tiket_list', project_id=tiket['project_id'], filter='all') }}"
+        class="btn btn-outline-secondary mt-3 w-100">📋 Ver todos</a>
+
+
+
+
+    {% if analisis %}
+    <hr>
+    <div class="mt-3">
+        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-graph-up"></i> Predicción IA del Ticket</h6>
+
+        <p><strong>⏱ Duración estimada:</strong> {{ analisis.estimacion }} h</p>
+        <p><strong>📅 Inicio probable:</strong> {{ analisis.inicio_prob }}</p>
+        <p><strong>⏰ Fin probable:</strong> {{ analisis.fin_prob }}</p>
+        <p><strong>📉 Prob. de atraso:</strong> {{ analisis.prob_atraso }}</p>
+        <p><strong>⚙️ Causa más común:</strong> {{ analisis.causa }}</p>
+        <p><strong>💪 Carga del operador:</strong> {{ analisis.carga }}</p>
+        <p><strong>📈 Dificultad:</strong>
+            <span class="badge 
+            {% if analisis.dificultad=='Alta' %}bg-danger
+            {% elif analisis.dificultad=='Media' %}bg-warning text-dark
+            {% else %}bg-success{% endif %}">
+                {{ analisis.dificultad }}
+            </span>
+        </p>
+        <div class="alert alert-info small mt-3 mb-2">
+            💬 <strong>Consejo:</strong> {{ analisis.consejo }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 🧠 🔹 Recomendaciones automáticas -->
+    <!-- 🧠 🔹 Recomendaciones automáticas -->
+    {% if recomendaciones %}
+    <hr>
+    <div class="mt-3">
+        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-robot"></i> Análisis Inteligente</h6>
+
+        <p class="mb-1"><strong>📁 Categoría:</strong> {{ recomendaciones['categoria'] }}</p>
+        <p class="mb-1"><strong>⏱ Tiempo promedio:</strong> {{ recomendaciones['tiempo_estimado'] }} h</p>
+        <p class="mb-1"><strong>👷 Mejor operador:</strong> {{ recomendaciones['mejor_operador'] }}</p>
+
+        {% if recomendaciones['proyectos_relacionados'] %}
+        <p class="mb-1"><strong>🏗️ Proyectos con esta categoría:</strong></p>
+        <ul class="small text-muted">
+            {% for p in recomendaciones['proyectos_relacionados'] %}
+            <li>{{ p }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <p class="mb-1"><strong>🧩 Palabras frecuentes:</strong></p>
+        <div class="mt-1">
+            {% for tag in recomendaciones['tags'] %}
+            <span class="badge bg-info text-dark me-1 mb-1">{{ tag }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="alert alert-light border mt-3 small">
+            <i class="bi bi-graph-up-arrow text-success"></i>
+            Basado en <strong>tickets cerrados de la categoría "{{ recomendaciones['categoria'] }}"</strong>,
+            tu tiempo estimado de resolución será de <strong>{{ recomendaciones['tiempo_estimado'] }} h</strong>.
+        </div>
+    </div>
+    {% endif %}
+
+
+    {% if estado_emocional %}
+    <hr>
+    <div class="mt-3">
+        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-heart-pulse"></i> Estado emocional</h6>
+        <div
+            class="alert {% if '🚨' in estado_emocional.estado %}alert-danger{% elif '⚠️' in estado_emocional.estado %}alert-warning{% else %}alert-success{% endif %}">
+            <strong>{{ estado_emocional.estado }}</strong><br>
+            {{ estado_emocional.mensaje }}
+        </div>
+    </div>
+    {% endif %}
+
+
+
+
+    <!-- 🔸 Script de apertura/cierre lateral -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const sidebar = document.getElementById("ticketSidebar");
+            const toggleBtn = document.getElementById("toggleSidebarBtn");
+            toggleBtn.addEventListener("click", () => {
+                const visible = sidebar.style.transform === "translateX(0%)";
+                sidebar.style.transform = visible ? "translateX(100%)" : "translateX(0%)";
+                toggleBtn.innerHTML = visible
+                    ? '<i class="bi bi-layout-sidebar-inset"></i>'
+                    : '<i class="bi bi-x-lg"></i>';
+            });
+        });
+    </script>
+
+
+
+
+
+
+    <!-- 🔹 Toast visual -->
+    <div id="shortcutToast" style="
+  position: fixed; bottom: 25px; right: 25px;
+  background: rgba(0, 0, 0, 0.85); color: white;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 14px; display: none; z-index: 3000;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+  backdrop-filter: blur(3px);
+  transition: opacity 0.3s ease;
+  ">
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const commentForm = document.querySelector("form[action*='subtask_comment_add']");
+            const timerBtn = document.querySelector("form[action*='subtask_timer_toggle'] button");
+            const backBtn = document.querySelector("a[href*='tiket_list']");
+
+            function showToast(msg) {
+                const toast = document.getElementById("shortcutToast");
+                toast.textContent = msg;
+                toast.style.display = "block";
+                toast.style.opacity = "1";
+                setTimeout(() => toast.style.opacity = "0", 1500);
+                setTimeout(() => toast.style.display = "none", 1800);
+            }
+
+            const isMac = navigator.platform.toUpperCase().includes("MAC");
+
+            // Capturar eventos en fase temprana para evitar que el navegador los consuma antes
+            window.addEventListener("keydown", (e) => {
+                // 💬 Guardar comentario → ⌘ + Enter (Mac) / Ctrl + Enter (Win)
+                if ((isMac ? e.metaKey : e.ctrlKey) && e.key === "Enter") {
+                    const active = document.activeElement;
+                    if (active && active.tagName === "TEXTAREA" && commentForm) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        commentForm.submit();
+                        showToast("💬 Comment sent (" + (isMac ? "⌘ + Enter" : "Ctrl + Enter") + ")");
+                    }
+                }
+
+                // ⏯ Iniciar / Pausar tiempo → ⌥ + T (Mac) / Alt + T (Win)
+                if ((isMac ? e.altKey : e.altKey) && (e.key === "t" || e.key === "T")) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (timerBtn) {
+                        timerBtn.click();
+                        showToast("⏯ Timer toggled (" + (isMac ? "⌥ + T" : "Alt + T") + ")");
+                    }
+                }
+
+                // ↩️ Regresar a lista → ⌘ + ← (Mac) / Ctrl + ← (Win)
+                if ((isMac ? e.metaKey : e.ctrlKey) && e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (backBtn) {
+                        window.location.href = backBtn.href;
+                        showToast("↩️ Returning to tickets (" + (isMac ? "⌘ + ←" : "Ctrl + ←") + ")");
+                    }
+                }
+            }, true); // <— fase de captura = true
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const modalEl = document.getElementById("newTicketPlaybook");
+            const modal = new bootstrap.Modal(modalEl);
+            const toast = document.createElement("div");
+
+            // 🔸 Estilo del toast
+            toast.id = "shortcutToast";
+            toast.style.cssText = `
+    position:fixed;bottom:25px;right:25px;
+    background:rgba(0,0,0,0.85);color:white;
+    padding:10px 18px;border-radius:8px;
+    font-size:14px;display:none;z-index:3000;
+    box-shadow:0 3px 8px rgba(0,0,0,0.2);
+    backdrop-filter:blur(3px);
+    transition:opacity 0.3s ease;
+  `;
+            document.body.appendChild(toast);
+
+            function showToast(msg) {
+                toast.textContent = msg;
+                toast.style.display = "block";
+                toast.style.opacity = "1";
+                setTimeout(() => toast.style.opacity = "0", 1200);
+                setTimeout(() => toast.style.display = "none", 1500);
+            }
+
+            // 🔹 Shortcut global Alt + N (Win) / ⌥ + N (Mac)
+            window.addEventListener("keydown", (e) => {
+                const isMac = navigator.platform.toUpperCase().includes("MAC");
+                if ((isMac ? e.altKey : e.altKey) && e.key.toLowerCase() === "n") {
+                    e.preventDefault();
+                    modal.show();
+                    showToast("🎯 Nuevo ticket (Alt + z)");
+                }
+            });
+        });
+    </script>
+
+
+
+
+
+    <!-- ✅ MODAL CHECKLIST DE INICIO -->
+    <style>
+        /* Mantén el modal visible sobre todo */
+        #checklistInicioModal {
+            z-index: 99999 !important;
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.45 !important;
+            z-index: 99998 !important;
+        }
+
+        .modal-content {
+            animation: fadeInUp 0.25s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <div class="modal fade" id="checklistInicioModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg rounded-4 border-0">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-primary mb-0">🧩 Checklist de inicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body pt-3">
+                    <p class="text-muted small mb-3">
+                        Antes de comenzar a trabajar en este ticket, confirma los pasos básicos de preparación.
+                    </p>
+
+                    <form id="checklistForm" method="POST"
+                        action="{{ url_for('tiket.subtask_timer_toggle', subtask_id=tiket['id']) }}">
+                        <div class="list-group">
+                            {% if checklist_items %}
+                            {% for item in checklist_items %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" required> {{ item }}
+                            </label>
+                            {% endfor %}
+                            {% else %}
+                            <label class="list-group-item text-muted">
+                                No hay checklist definido para esta tecnología.
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 mt-4">▶️ Comenzar trabajo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const modalEl = document.getElementById("checklistInicioModal");
+            if (!modalEl) {
+                console.warn("⚠️ Modal checklist no encontrado.");
+                return;
+            }
+
+            // 🔹 Asegurar que el modal esté en el <body> directamente
+            if (modalEl.parentNode !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+
+            const checklistModal = new bootstrap.Modal(modalEl, {
+                backdrop: 'static',
+                keyboard: true,
+                focus: true
+            });
+
+            // Escucha botón ▶️ Trabajar
+            const botones = document.querySelectorAll("button[data-bs-target='#checklistInicioModal']");
+            botones.forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    console.log("🧩 Abriendo modal checklist (inyectado al body)...");
+                    checklistModal.show();
+                });
+            });
+
+            // Cierra automáticamente al enviar
+            const form = document.getElementById("checklistForm");
+            form?.addEventListener("submit", () => {
+                setTimeout(() => checklistModal.hide(), 400);
+            });
+
+            console.log("✅ Checklist modal listo (inyectado dinámicamente en <body>).");
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const checklistItems = document.querySelectorAll(".checklist-item");
+            const closeBtn = document.querySelector("#closeButton"); // tu botón real de cerrar ticket
+            const alertBox = document.querySelector("#checklistAlert");
+
+            function verificarChecklist() {
+                const total = checklistItems.length;
+                const marcados = [...checklistItems].filter(cb => cb.checked).length;
+
+                if (total > 0 && marcados === total) {
+                    alertBox.classList.remove("alert-warning");
+                    alertBox.classList.add("alert-success");
+                    alertBox.innerHTML = "✅ Checklist completo. Puedes cerrar el ticket.";
+                    if (closeBtn) {
+                        closeBtn.disabled = false;
+                    }
+                } else {
+                    alertBox.classList.remove("alert-success");
+                    alertBox.classList.add("alert-warning");
+                    alertBox.innerHTML = `🔒 ${total - marcados} punto(s) pendiente(s) por revisar.`;
+                    if (closeBtn) {
+                        closeBtn.disabled = true;
+                    }
+                }
+            }
+
+            checklistItems.forEach(cb => cb.addEventListener("change", verificarChecklist));
+
+            // Ejecutar una vez al cargar
+            verificarChecklist();
+        });
+    </script>
+
+    {% endblock %}

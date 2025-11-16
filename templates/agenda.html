@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Agenda de Trabajo{% endblock %}
+
+{% block content %}
+<style>
+    /* === Estructura general === */
+    .agenda-header {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        color: white;
+        border-radius: 14px;
+        padding: 14px 20px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .agenda-header h4 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .agenda-header input[type="date"] {
+        border-radius: 8px;
+        min-height: 38px;
+        border: none;
+        padding: 5px 10px;
+    }
+
+    .agenda-container {
+        display: flex;
+        position: relative;
+        height: 960px;
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: #ffffff;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .agenda-hours {
+        width: 70px;
+        background-color: #f7f7f7;
+        border-right: 1px solid #e0e0e0;
+        text-align: right;
+        font-size: 13px;
+        color: #666;
+        padding-top: 10px;
+        position: relative;
+    }
+
+    .hour-label {
+        height: 60px;
+        line-height: 60px;
+        padding-right: 8px;
+        border-bottom: 1px dashed #ddd;
+    }
+
+    .agenda-timeline {
+        flex: 1;
+        position: relative;
+        background: linear-gradient(to bottom, #ffffff 0%, #f9f9f9 100%);
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+    }
+
+    .agenda-block {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        border-radius: 10px;
+        color: white;
+        font-size: 13px;
+        padding: 6px 8px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        transition: transform 0.15s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+
+    .agenda-block:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .agenda-text {
+        color: white;
+        font-weight: 500;
+        line-height: 1.2em;
+    }
+
+    @media (max-width: 768px) {
+        .agenda-container {
+            flex-direction: column;
+            height: auto;
+        }
+
+        .agenda-hours {
+            display: none;
+        }
+
+        .agenda-timeline {
+            height: 600px;
+            overflow-y: auto;
+        }
+
+        .agenda-block {
+            position: relative;
+            left: 0;
+            right: 0;
+            margin-bottom: 12px;
+        }
+    }
+</style>
+
+<!-- 🔹 Encabezado -->
+<div class="agenda-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4 class="mb-0">📅 Agenda de Trabajo — {{ fecha }}</h4>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ fecha }}"
+            onchange="this.form.submit()">
+    </form>
+    <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+</div>
+
+<!-- 🔹 Contenedor principal -->
+<div class="agenda-container">
+    <!-- Columna de horas -->
+    <div class="agenda-hours">
+        {% for h in range(5, 22) %}
+        <div class="hour-label">{{ "%02d:00"|format(h) }}</div>
+        {% endfor %}
+    </div>
+
+    <!-- Columna de eventos -->
+    <div class="agenda-timeline">
+        {% for e in eventos %}
+        <div class="agenda-block" onclick="window.location.href='/projects/{{ e.proyecto|urlencode }}'" style="
+                top: {{ e.offset_min }}px;
+                height: {{ e.duracion_min }}px;
+                background: {{ e.color }};
+             ">
+            <div class="agenda-text">
+                <strong>{{ e.proyecto }}</strong><br>
+                <small>{{ e.inicio }} - {{ e.fin }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

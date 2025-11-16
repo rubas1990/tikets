@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}🧩 Paquete de Subtareas Base{% endblock %}
+
+{% block content %}
+<style>
+    .header-paquete {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        color: white;
+        border-radius: 14px;
+        padding: 16px 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin-bottom: 24px;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        color: white;
+        border: none;
+    }
+
+    .btn-gradient:hover {
+        opacity: 0.9;
+        color: white;
+    }
+
+    .card-form {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .table-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .badge-cat {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.4em 0.6em;
+    }
+</style>
+
+<div class="header-paquete d-flex justify-content-between align-items-center">
+    <div>
+        <h4 class="mb-0">🧩 Subtareas Base por Paquete</h4>
+        <small class="opacity-75">Define los pasos automáticos al crear un nuevo paquete</small>
+    </div>
+    <a href="{{ url_for('paquete.admin_paquetes') }}" class="btn btn-light btn-sm">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- 📘 Guía de Categorías -->
+<div class="dropdown mb-3 text-end">
+    <button class="btn btn-outline-primary btn-sm fw-semibold dropdown-toggle" type="button" id="dropdownRules"
+        data-bs-toggle="dropdown" aria-expanded="false">
+        📘 Ver Guía de categorías
+    </button>
+    <div class="dropdown-menu p-3 shadow-lg border-0" aria-labelledby="dropdownRules"
+        style="max-height: 400px; overflow-y: auto; width: 480px;">
+        <p class="small text-muted mb-2">
+            El sistema asigna categorías automáticamente según palabras clave en la descripción.
+        </p>
+        <ul class="list-group list-group-flush small">
+            {% for r in reglas %}
+            <li class="list-group-item px-0 py-1">
+                <strong>{{ r.categoria }} ({{ r.total }} palabra{{ 's' if r.total != 1 else '' }}):</strong>
+                <span class="text-muted">{{ r.palabras }}</span>
+            </li>
+            {% else %}
+            <li class="list-group-item px-0 py-1 text-muted">No hay reglas definidas.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- 🔹 Filtro de paquete -->
+<form method="get" class="mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label fw-semibold">📦 Filtrar por paquete</label>
+            <select name="paquete_id" class="form-select shadow-sm" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                {% for p in paquetes %}
+                <option value="{{ p['id'] }}" {% if p['id']==paquete_id|int %}selected{% endif %}>
+                    {{ p['nombre'] }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</form>
+
+<!-- 🧩 Formulario Nueva Subtarea Base -->
+<form method="post" class="card card-body mb-4 card-form">
+    <h6 class="fw-bold text-primary mb-3">
+        <i class="bi bi-plus-circle me-1"></i> Agregar subtarea base
+    </h6>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">📦 Paquete</label>
+            <select name="paquete_id" class="form-select" required>
+                {% for p in paquetes %}
+                <option value="{{ p['id'] }}" {% if p['id']==paquete_id|int %}selected{% endif %}>
+                    {{ p['nombre'] }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-8">
+            <label class="form-label">🎫 Nombre Subtarea</label>
+            <input type="text" name="nombre_subtarea" class="form-control"
+                placeholder="Ejemplo: Crear conexión Flask–DB" required>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-2">
+        <div class="col-md-3">
+            <label class="form-label">⏱ Tiempo objetivo (h)</label>
+            <select name="tiempo_objetivo_horas" class="form-select">
+                <option value="0.5">0.5</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+                <option value="24">24</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">💡 Dificultad</label>
+            <select name="dificultad" class="form-select">
+                <option value="1">Fácil 🚶‍♂️</option>
+                <option value="2">Media 🚴‍♂️</option>
+                <option value="3">Alta 🧗‍♂️</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">⚙️ Tecnología</label>
+            <select name="tecnologia" class="form-select">
+                <option value="Python">Python</option>
+                <option value="Flask">Flask</option>
+                <option value="SQL Server">SQL Server</option>
+                <option value="Bootstrap">Bootstrap</option>
+                <option value="Industrial Data">Industrial Data</option>
+                <option value="PLC">PLC</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">🏷️ Categoría</label>
+            <select name="categoria" class="form-select">
+                <option value="">Automática 🤖</option>
+                {% for r in reglas %}
+                <option value="{{ r.categoria }}">{{ r.categoria }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- 🎯 Resultado clave (KR) -->
+    <div class="mt-3">
+        <label class="form-label fw-semibold">🎯 Resultado clave (KR)</label>
+        <select name="kr" id="kr" class="form-select">
+            <option value="">(Sin OKR)</option>
+
+            {% set categorias = okrs | groupby('categoria') %}
+            {% for grupo in categorias %}
+            {% set categoria = grupo.grouper %}
+            <optgroup label="{{ categoria }}">
+                {% for item in grupo.list %}
+                <option value="{{ item['kr'] }}">{{ item['kr'] }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mt-3">
+        <label class="form-label">💬 Comentarios base</label>
+        <input type="text" name="comentarios" class="form-control"
+            placeholder="Ejemplo: Generar modelo Flask + SQLite y probar inserciones.">
+    </div>
+
+    <div class="mt-3">
+        <label class="form-label">📘 Aprendizaje base</label>
+        <input type="text" name="aprendizaje" class="form-control"
+            placeholder="Ejemplo: Uso de CRUD dinámico y auto-categorización.">
+    </div>
+
+    <div class="text-end mt-4">
+        <button class="btn btn-gradient px-4">💾 Guardar Subtarea Base</button>
+    </div>
+</form>
+
+<!-- 📋 Tabla de subtareas -->
+<div class="card table-card mt-4">
+    <div class="card-header bg-light fw-semibold">
+        <i class="bi bi-list-ul me-1"></i> Subtareas registradas
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Paquete</th>
+                        <th>Subtarea</th>
+                        <th>Categoría</th>
+                        <th>Tecnología</th>
+                        <th>Dificultad</th>
+                        <th>Horas</th>
+                        <th>KR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subdetalles %}
+                    <tr>
+                        <td>{{ s['id'] }}</td>
+                        <td>{{ s['paquete_nombre'] }}</td>
+                        <td class="fw-semibold">{{ s['nombre_subtarea'] }}</td>
+                        <td>
+                            {% if s['categoria'] %}
+                            <span class="badge bg-info text-dark badge-cat">{{ s['categoria'] }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ s['tecnologia'] }}</td>
+                        <td class="text-center">{{ s['dificultad'] }}</td>
+                        <td class="text-center">{{ s['tiempo_objetivo_horas'] }}</td>
+                        <td>{{ s['kr'] or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-3">
+                            <i class="bi bi-inbox"></i> No hay subtareas base aún.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

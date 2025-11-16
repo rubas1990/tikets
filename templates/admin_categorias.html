@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Categorías de Subtareas{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">🧠 Tabla de Subtareas y Categorías</h5>
+            <a href="{{ url_for('main.recategorizar_subtareas') }}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-arrow-repeat"></i> Re-categorizar Automático
+            </a>
+        </div>
+
+        <div class="card-body">
+            <!-- 🔹 Guía de reglas de categorización -->
+            <!-- 🔹 Guía dinámica de categorización -->
+            <div class="dropdown mb-4">
+                <button class="btn btn-outline-primary dropdown-toggle fw-semibold" type="button" id="dropdownRules"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    📘 Ver Guía de Categorización Automática
+                </button>
+
+                <div class="dropdown-menu p-3 shadow-lg border-0" aria-labelledby="dropdownRules"
+                    style="max-height: 400px; overflow-y: auto; width: 500px;">
+                    <p class="small text-muted mb-2">
+                        El sistema asigna categorías automáticamente según las palabras clave definidas en la base de
+                        datos.
+                    </p>
+
+                    <ul class="list-group list-group-flush small">
+                        {% for r in reglas %}
+                        <li class="list-group-item px-0 py-1">
+                            <strong>{{ r.categoria }} ({{ r.total }} palabra{{ 's' if r.total != 1 else '' }}):</strong>
+                            <span class="text-muted">{{ r.palabras }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="alert alert-info mt-3 mb-0 small">
+                        <strong>💡 Consejo:</strong> si una subtarea contiene palabras de dos categorías diferentes,
+                        se marcará como <strong>⚠️ Conflicto</strong> para revisión manual.
+                    </div>
+                </div>
+            </div>
+
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, msg in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="table-responsive" style="max-height: 70vh;">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:5%;">ID</th>
+                            <th style="width:45%;">Nombre de Subtarea</th>
+                            <th style="width:35%;">Categoría</th>
+                            <th style="width:15%; text-align:center;">Guardar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in subtareas %}
+                        <tr>
+                            <form method="post" class="align-middle">
+                                <td>{{ s.id }}</td>
+                                <td>
+                                    <input type="hidden" name="id" value="{{ s.id }}">
+                                    <input type="text" name="nombre_subtarea" value="{{ s.nombre_subtarea }}"
+                                        class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <select name="categoria" class="form-select form-select-sm">
+                                        {% if "⚠️" in s.categoria %}
+                                        <span class="text-danger fw-semibold">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> {{ s.categoria }}
+                                        </span>
+                                        {% else %}
+                                        {{ s.categoria }}
+                                        {% endif %}
+                                        {% for cat in categorias_existentes %}
+                                        <option value="{{ cat }}" {% if cat==s.categoria %}selected{% endif %}>{{ cat }}
+                                        </option>
+                                        {% endfor %}
+                                        <option value="Otro" {% if s.categoria=="Otro" %}selected{% endif %}>Otro
+                                        </option>
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-outline-success btn-sm" type="submit">
+                                        <i class="bi bi-check2-circle"></i>
+                                    </button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+<div class="card flex-fill shadow-sm">
+    <div class="card-header text-center bg-light fw-bold">🗒️ Centro de comentarios</div>
+    <div
+        class="card-body {% if tiket['cerrado'] == 1 or tiket['proyecto_status'] != 'Trabajando' %}disabled-area{% endif %}">
+        <div class="scrollable-box">
+            {% if tiket['comentarios'] %}
+            <pre style="white-space:pre-wrap;font-size:14px;background:#f9f9f9;padding:10px;border-radius:8px;">
+{{ tiket['comentarios'] }}
+        </pre>
+            {% else %}
+            <p class="text-muted text-center">Sin comentarios aún.</p>
+            {% endif %}
+        </div>
+        <hr>
+        {% if tiket['cerrado'] == 0 and tiket['proyecto_status'] == 'Trabajando' and en_trabajo %}
+        <form method="post" action="{{ url_for('tiket.subtask_comment_add', subtask_id=tiket['id']) }}">
+            <textarea name="comentario" rows="3" class="form-control mb-2"
+                placeholder="✏️ Escribe un nuevo comentario..."></textarea>
+            <button class="btn btn-primary w-100 btn-comment">💬 Agregar comentario</button>
+        </form>
+        {% else %}
+        <p class="text-danger text-center fw-bold mt-2 mb-0">❌ Solo puedes agregar comentarios mientras el ticket está
+            en ejecución.</p>
+        {% endif %}
+    </div>
+</div>

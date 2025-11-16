@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Asistente IA — Naming Tickets{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">💡 Asistente de Naming Inteligente</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <label for="descripcion" class="form-label">Descripción o idea inicial</label>
+                <textarea name="descripcion" id="descripcion" class="form-control" rows="3"
+                    placeholder="Ejemplo: sincronizar datos del PLC con la base de datos local">{{ descripcion }}</textarea>
+                <button type="submit" class="btn btn-primary mt-3">Generar sugerencia</button>
+            </form>
+
+            {% if sugerencia %}
+            <hr>
+            <h6>🧠 Resultado sugerido</h6>
+            <ul class="list-group">
+                <li class="list-group-item"><strong>🏷 Nombre:</strong> {{ sugerencia.nombre }}</li>
+                <li class="list-group-item"><strong>📂 Categoría:</strong> {{ sugerencia.categoria }}</li>
+                <li class="list-group-item"><strong>🎯 KR:</strong> {{ sugerencia.kr }}</li>
+                <li class="list-group-item"><strong>⚙ Tecnología:</strong> {{ sugerencia.tecnologia }}</li>
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
