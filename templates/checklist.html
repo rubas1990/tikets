@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Checklist Técnico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="text-primary mb-0">⚙️ Checklist Técnico</h4>
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm">🏠 Inicio</a>
+    </div>
+
+    <!-- Formulario para agregar nueva regla -->
+    <form method="post" class="card p-3 mb-4 shadow-sm">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <input name="kr" class="form-control" placeholder="kr" required>
+            </div>
+            <div class="col-md-6">
+                <input name="punto" class="form-control" placeholder="Punto de revisión" required>
+            </div>
+            <div class="col-md-2">
+                <input name="orden" type="number" class="form-control" placeholder="Orden" min="0">
+            </div>
+            <div class="col-md-1 d-grid">
+                <button class="btn btn-primary" name="add">➕</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Tabla de reglas -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Kr</th>
+                    <th>Punto</th>
+                    <th>Orden</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reglas %}
+                <tr>
+                    <form method="post" action="{{ url_for('checklist.checklist_update', id=r['id']) }}">
+                        <td>{{ r['id'] }}</td>
+                        <td><input name="kr" class="form-control form-control-sm" value="{{ r['kr'] }}">
+                        </td>
+                        <td><input name="punto" class="form-control form-control-sm" value="{{ r['punto'] }}"></td>
+                        <td><input name="orden" type="number" class="form-control form-control-sm"
+                                value="{{ r['orden'] }}"></td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-sm">💾</button>
+                            </div>
+                        </td>
+                    </form>
+                    <td class="text-center">
+                        <form method="post" action="{{ url_for('checklist.checklist_delete', id=r['id']) }}"
+                            onsubmit="return confirm('¿Eliminar esta regla?');">
+                            <button class="btn btn-danger btn-sm">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Estado Emocional{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold text-primary">🧠 Estado Emocional — Últimos 7 días</h4>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm">⬅️ Dashboard General</a>
+    </div>
+
+    {% if alerta_fatiga %}
+    <div class="alert alert-danger fw-semibold text-center">{{ alerta_fatiga }}</div>
+    {% endif %}
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <canvas id="chartCategorias" height="120"></canvas>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="fw-bold">📊 Tendencia de: {{ categoria_seleccionada }}</h5>
+        <form method="get">
+            <select name="categoria" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for c in categorias %}
+                <option value="{{ c.categoria }}" {% if c.categoria==categoria_seleccionada %}selected{% endif %}>
+                    {{ c.categoria }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <canvas id="chartHistorial" height="110"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx1 = document.getElementById('chartCategorias');
+    const dataCategorias = {
+        labels: {{ categorias| map(attribute = 'categoria') | list | tojson }},
+    datasets: [{
+        label: 'Promedio de horas trabajadas (7 días)',
+        data: {{ categorias| map(attribute = 'prom_horas') | list | tojson }},
+        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+        borderColor: 'rgba(0, 123, 255, 1)',
+        borderWidth: 1
+        }]
+    };
+    new Chart(ctx1, { type: 'bar', data: dataCategorias, options: { scales: { y: { beginAtZero: true } } } });
+
+    const ctx2 = document.getElementById('chartHistorial');
+    const dataHistorial = {
+        labels: {{ detalle| map(attribute = 'fecha') | list | tojson }},
+    datasets: [{
+        label: 'Promedio diario (horas)',
+        data: {{ detalle| map(attribute = 'horas_promedio') | list | tojson }},
+        fill: false,
+        borderColor: '#28a745',
+        tension: 0.3
+        }]
+    };
+    new Chart(ctx2, { type: 'line', data: dataHistorial });
+</script>
+
+{% endblock %}

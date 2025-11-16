@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Executive Dashboard — {{ metrics.period.year }}-{{ "%02d"|format(metrics.period.month) }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>📊 Executive Dashboard — {{ metrics.period.year }}-{{ "%02d"|format(metrics.period.month) }}</h4>
+    <a class="btn btn-primary"
+        href="{{ url_for('reports.exec_monthly_pdf', year=metrics.period.year, month=metrics.period.month) }}">
+        ⬇️ Download PDF
+    </a>
+</div>
+
+<div class="progress mt-2" style="height: 10px;">
+    <div class="progress-bar bg-success" role="progressbar" style="width: {{ metrics.projects_closed_pct }}%;"></div>
+</div>
+<small class="text-muted">{{ metrics.projects_closed_pct }}% Closed</small>
+
+
+<!-- 🧩 KPIs SUMMARY -->
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 p-3 text-center">
+            <h6 class="fw-bold text-muted mb-1">💰 Total Savings</h6>
+            <div class="display-6 fw-bold text-success">${{ metrics.ahorro_total }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 p-3 text-center">
+            <h6 class="fw-bold text-muted mb-1">📈 Projected Closures</h6>
+            <div class="display-6 fw-bold text-primary">{{ metrics.proj_cierre_mes }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 p-3 text-center">
+            <h6 class="fw-bold text-muted mb-1">✅ Completion Rate</h6>
+            <div class="display-6 fw-bold text-info">{{ metrics.projects_closed_pct }}%</div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card shadow-sm border-0 mt-3">
+    <div class="card-body text-center">
+        <h6 class="fw-bold mb-2">📊 Project Status Overview</h6>
+        <p class="mb-0">
+            🟢 Closed: {{ metrics.projects_closed }} |
+            🟡 In Progress: {{ metrics.projects_working }} |
+            🔴 On Hold: {{ metrics.projects_stopped }}
+        </p>
+    </div>
+</div>
+
+
+<!-- 🔹 Hours vs Target -->
+<div class="card shadow-sm mt-3">
+    <div class="card-body">
+        <h6 class="fw-bold mb-3">⏱ Hours vs Target per Project</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Project</th>
+                        <th>Actual (h)</th>
+                        <th>Target (h)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in metrics.hours_by_project %}
+                    <tr>
+                        <td>{{ r.project }}</td>
+                        <td>{{ r.actual_hours }}</td>
+                        <td>{{ r.target_hours }}</td>
+                        <td><span class="badge {{ r.badge }}">{{ r.status }}</span></td>
+
+
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- 🏅 Top Operators -->
+<div class="row g-3 mt-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">🏅 Top 3 Most Efficient Operators</h6>
+                {% if metrics.top_operators %}
+                <ol class="mb-0">
+                    {% for u in metrics.top_operators %}
+                    <li>{{ u.username }} — {{ u.eficiencia_pct }}%
+                        <small class="text-muted">(Real: {{ u.horas_reales }}h / Target: {{ u.horas_objetivo
+                            }}h)</small>
+                    </li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <em>No operator data available.</em>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 📅 Weekly Closures -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">📅 Weekly Closure Performance</h6>
+                {% if metrics.closed_by_week %}
+                <ul class="mb-0">
+                    {% for w in metrics.closed_by_week %}
+                    <li>{{ w.week_label }} — {{ w.cerrados }} closed</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <em>No closures during this period.</em>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔎 Insights Section -->
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+        <h6 class="fw-bold mb-2">🧠 Data Insights</h6>
+        <ul class="mb-0">
+            {% for insight in metrics.data_insights %}
+            <li>{{ insight }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% endblock %}

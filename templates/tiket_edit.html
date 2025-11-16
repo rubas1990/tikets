@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}✏️ Editar Ticket — {{ tiket['numero_de_queja'] }}{% endblock %}
+{% block content %}
+
+<style>
+    .edit-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 28px 32px;
+    }
+
+    .edit-container h4 {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+
+    label {
+        font-weight: 600;
+        color: #333;
+        margin-top: 10px;
+    }
+
+    .form-control,
+    .form-select,
+    textarea {
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .btn-save {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        padding: 10px 20px;
+        transition: 0.25s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+</style>
+
+<div class="edit-container">
+    <h4>✏️ Editar Ticket</h4>
+
+    <form method="post">
+        <!-- 🏷️ Nombre de la subtarea -->
+        <label for="nombre_subtarea">Nombre de Subtarea</label>
+        <input type="text" id="nombre_subtarea" name="nombre_subtarea" class="form-control"
+            value="{{ tiket['nombre_subtarea'] }}" required>
+
+        <!-- ⚙️ Tecnología -->
+        <label for="tecnologia" class="form-label fw-semibold">⚙️ Tecnología</label>
+        <select id="tecnologia" name="tecnologia" class="form-select" required>
+            {% set tecnologias = ['Python', 'Flask', 'SQL Server', 'Bootstrap', 'Industrial Data', 'Integracion
+            industrial', 'Php'] %}
+            {% for tech in tecnologias %}
+            <option value="{{ tech }}" {% if tiket['tecnologia']==tech %}selected{% endif %}>{{ tech }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- 🎯 Resultado clave (KR) -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold">🎯 Resultado clave (KR)</label>
+            <select name="kr" id="kr" class="form-select">
+                <option value="">(Sin OKR)</option>
+
+                {% set categorias = okrs | groupby('categoria') %}
+                {% for grupo in categorias %}
+                {% set categoria = grupo.grouper %}
+                <optgroup label="{{ categoria }}">
+                    {% for item in grupo.list %}
+                    <option value="{{ item['kr'] }}" {% if item['kr']==tiket['kr'] %}selected{% endif %}>
+                        {{ item['kr'] }}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 🧩 Categoría -->
+        <label for="categoria">Categoría</label>
+        <input type="text" id="categoria" name="categoria" class="form-control" value="{{ tiket['categoria'] }}">
+
+        <!-- 🔥 Dificultad -->
+        <label for="dificultad" class="form-label fw-semibold mt-3">🔥 Dificultad</label>
+        <select id="dificultad" name="dificultad" class="form-select" required>
+            {% for n in niveles %}
+            <option value="{{ n.valor }}" {% if tiket['dificultad']==n.valor %}selected{% endif %}>
+                {{ n.etiqueta }}
+            </option>
+            {% endfor %}
+        </select>
+
+
+        <!-- 💬 Comentarios -->
+        <label for="comentarios" class="mt-3">💬 Comentarios</label>
+        <textarea id="comentarios" name="comentarios" class="form-control"
+            placeholder="Notas, observaciones o lecciones aprendidas...">{{ tiket['comentarios'] }}</textarea>
+
+
+        <!-- 💾 Botón Guardar -->
+        <div class="text-end mt-4">
+            <button type="submit" class="btn-save">💾 Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

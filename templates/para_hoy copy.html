@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}🧠 Para Hoy — Vista tipo Card{% endblock %}
+
+{% block content %}
+<style>
+    /* 🎨 Fondo limpio tipo app */
+    body {
+        background: linear-gradient(180deg, #f6f8fc, #eef1f5);
+        font-family: "Inter", system-ui, sans-serif;
+        color: #333;
+    }
+
+    /* 🧱 Contenedor central */
+    .ph-wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px 14px;
+    }
+
+    /* 🧠 Encabezado */
+    .ph-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, #0d6efd, #00c6ff);
+        color: white;
+        border-radius: 18px;
+        padding: 18px 22px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .ph-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .ph-header small {
+        opacity: 0.85;
+    }
+
+    .ph-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ph-controls input {
+        width: 70px;
+        text-align: center;
+        border-radius: 8px;
+        border: none;
+        padding: 6px;
+    }
+
+    .ph-controls button {
+        border-radius: 10px;
+        border: none;
+        font-weight: 500;
+        padding: 6px 12px;
+        cursor: pointer;
+    }
+
+    .btn-apply {
+        background: white;
+        color: #0d6efd;
+    }
+
+    .btn-refresh {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        color: white;
+    }
+
+    /* 🪶 Card moderna */
+    .ph-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 18px 20px;
+        margin-top: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .ph-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(13, 110, 253, 0.12);
+    }
+
+    .ph-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .ph-card h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .ph-pill {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .ph-prio-alta {
+        background: #ffe6e6;
+        color: #b00000;
+    }
+
+    .ph-prio-media {
+        background: #fff6e6;
+        color: #b26b00;
+    }
+
+    .ph-prio-baja {
+        background: #eaf6ff;
+        color: #005b96;
+    }
+
+    /* 📊 Barra progreso */
+    .ph-bar {
+        width: 100%;
+        height: 10px;
+        background: #edf1f4;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 6px;
+    }
+
+    .ph-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #0d6efd, #00c6ff);
+        transition: width 0.5s ease;
+    }
+
+    /* 🧩 Grid adaptable */
+    .ph-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    /* 📱 Optimización táctil */
+    @media (max-width: 768px) {
+        .ph-header {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ph-controls {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
+
+<div class="ph-wrapper">
+
+    <!-- 🧠 Encabezado principal -->
+    <div class="ph-header">
+        <div>
+            <h1>🧠 Para Hoy</h1>
+            <small>Agenda predictiva con enfoque táctil</small>
+        </div>
+        <div class="ph-controls">
+            <input id="ph-count" type="number" min="1" value="{{ default_n }}">
+            <button id="ph-apply" class="btn-apply">Aplicar</button>
+            <button id="ph-refresh" class="btn-refresh">Actualizar</button>
+        </div>
+    </div>
+
+    <!-- 📊 Cards de resumen -->
+    <div class="ph-grid">
+        <div class="ph-card">
+            <div class="ph-card-header">
+                <h5>📈 Impacto semanal</h5>
+                <span id="ph-last" class="text-muted small">—</span>
+            </div>
+            <pre id="ph-impact"
+                style="background:#f8f9fa;border-radius:10px;padding:10px;font-size:0.85rem;overflow:auto;">Cargando...</pre>
+        </div>
+
+        <div class="ph-card">
+            <div class="ph-card-header">
+                <h5>🎨 Vista rápida</h5>
+            </div>
+            <div id="ph-legend" class="text-muted small">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- 🗒️ Lista de tareas -->
+    <div id="ph-list" class="mt-3">
+        <!-- 🪶 Ejemplo visual temporal -->
+        <div class="ph-card">
+            <div class="ph-card-header">
+                <h5>Optimizar módulo de Tikets</h5>
+                <span class="ph-pill ph-prio-alta">Alta</span>
+            </div>
+            <p class="mb-2 text-muted small">Duración estimada: 1.5h • Tipo: Técnico</p>
+            <div class="ph-bar">
+                <div class="ph-fill" style="width:65%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script defer src="{{ url_for('static', filename='js/para_hoy.js') }}?v={{ config.get('BUILD_ID') }}"></script>
+
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Proyectos - Soporte{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    .page-header {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        color: white;
+        border-radius: 14px;
+        padding: 18px 22px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .page-header h4 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .card-modern {
+        border: none;
+        border-radius: 14px;
+        transition: all 0.25s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-modern:active {
+        transform: scale(0.98);
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .project-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #0d6efd;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .progress {
+        height: 10px;
+        border-radius: 10px;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        border-radius: 8px;
+    }
+
+    .search-bar input {
+        border-radius: 8px;
+        min-height: 42px;
+    }
+
+    .search-bar button {
+        min-height: 42px;
+    }
+
+    hr {
+        border-top: 2px solid #007bff !important;
+        opacity: 0.6;
+    }
+
+    @media (max-width: 991px) {
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+
+<!-- 🔹 HEADER -->
+<div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4><i class="bi bi-kanban-fill me-2"></i>Gestión de Proyectos</h4>
+
+    <div class="d-flex align-items-center gap-2 search-bar flex-grow-1 flex-sm-grow-0">
+        <form method="get" class="d-flex flex-grow-1" role="search">
+            <input type="text" name="q" value="{{ query }}" class="form-control form-control-sm me-2"
+                placeholder="🔍 Buscar por nombre, queja o sitio...">
+            <button class="btn btn-light btn-sm text-primary fw-bold" type="submit">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+
+        {% if query %}
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-x-circle"></i>
+        </a>
+        {% endif %}
+
+        {% if session.get('user_role') == 'admin' %}
+        <a class="btn btn-success btn-sm" href="{{ url_for('project.project_new') }}">
+            <i class="bi bi-plus-lg"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if query %}
+<p class="text-muted small mb-3">Resultados para: <strong>{{ query }}</strong></p>
+{% endif %}
+
+<!-- =============================== -->
+<!-- 🔵 WORKING PROJECTS -->
+<!-- =============================== -->
+<h5 class="section-title text-primary mb-3 d-flex align-items-center">
+    <i class="bi bi-lightning-charge-fill me-2"></i> Working Projects
+</h5>
+
+<div class="row g-3">
+    {% set hay_trabajando = false %}
+    {% for p, avance in projects %}
+    {% if p['status'] == 'Trabajando' %}
+    {% set hay_trabajando = true %}
+    <div class="col-md-6">
+        <div class="card card-modern border-start border-primary border-3">
+            <div class="card-body">
+                <div class="project-actions mb-1 d-flex justify-content-between align-items-center">
+                    <span class="project-title">{{ p['nombre'] }}</span>
+                    <a href="{{ url_for('project.project_detail', project_id=p['id']) }}"
+                        class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </div>
+
+                <p><strong># Queja:</strong> {{ p['numero_de_queja'] }}</p>
+                <p><strong>Sitio:</strong> {{ p['sitio'] }}</p>
+                <p><strong>Prioridad:</strong> {{ p['prioridad'] }} |
+                    <strong>Status:</strong> <span class="badge bg-primary">Trabajando</span>
+                </p>
+                <p><strong>Apertura:</strong> {{ p['fecha_apertura']|fmt_dt }} |
+                    <strong>Cierre:</strong> {{ p['fecha_cierre']|fmt_dt }}
+                </p>
+
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-primary" style="width: {{ avance }}%;">{{ avance }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if not hay_trabajando %}<div class="text-muted fst-italic ps-3">No working projects.</div>{% endif %}
+</div>
+
+<hr class="my-4">
+
+<!-- =============================== -->
+<!-- 🟠 ON HOLD PROJECTS -->
+<!-- =============================== -->
+<h5 class="section-title text-warning mb-3 d-flex align-items-center">
+    <i class="bi bi-pause-circle-fill me-2"></i> Projects On Hold
+</h5>
+
+<div class="row g-3">
+    {% set hay_hold = false %}
+    {% for p, avance in projects %}
+    {% if p['status'] == 'Detenido' %}
+    {% set hay_hold = true %}
+    <div class="col-md-6">
+        <div class="card card-modern border-start border-warning border-3">
+            <div class="card-body">
+                <div class="project-actions mb-1 d-flex justify-content-between align-items-center">
+                    <span class="project-title">{{ p['nombre'] }}</span>
+                    <a href="{{ url_for('project.project_detail', project_id=p['id']) }}"
+                        class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </div>
+
+                <p><strong># Queja:</strong> {{ p['numero_de_queja'] }}</p>
+                <p><strong>Sitio:</strong> {{ p['sitio'] }}</p>
+                <p><strong>Prioridad:</strong> {{ p['prioridad'] }} |
+                    <strong>Status:</strong> <span class="badge bg-warning text-dark">On Hold</span>
+                </p>
+                <p><strong>Apertura:</strong> {{ p['fecha_apertura']|fmt_dt }} |
+                    <strong>Cierre:</strong> {{ p['fecha_cierre']|fmt_dt }}
+                </p>
+
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-warning text-dark" style="width: {{ avance }}%;">{{ avance }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if not hay_hold %}<div class="text-muted fst-italic ps-3">No projects on hold.</div>{% endif %}
+</div>
+
+<hr class="my-4">
+
+<!-- =============================== -->
+<!-- 🟢 CLOSED PROJECTS -->
+<!-- =============================== -->
+<h5 class="section-title text-success mb-3 d-flex align-items-center">
+    <i class="bi bi-check-circle-fill me-2"></i> Closed Projects
+</h5>
+
+<div class="row g-3 mb-5">
+    {% set hay_closed = false %}
+    {% for p, avance in projects %}
+    {% if p['status'] == 'Cerrado' %}
+    {% set hay_closed = true %}
+    <div class="col-md-6">
+        <div class="card card-modern border-start border-success border-3">
+            <div class="card-body">
+                <div class="project-actions mb-1 d-flex justify-content-between align-items-center">
+                    <span class="project-title">{{ p['nombre'] }}</span>
+                    <a href="{{ url_for('project.project_detail', project_id=p['id']) }}"
+                        class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </div>
+
+                <p><strong># Queja:</strong> {{ p['numero_de_queja'] }}</p>
+                <p><strong>Sitio:</strong> {{ p['sitio'] }}</p>
+                <p><strong>Prioridad:</strong> {{ p['prioridad'] }} |
+                    <strong>Status:</strong> <span class="badge bg-success">Closed</span>
+                </p>
+                <p><strong>Apertura:</strong> {{ p['fecha_apertura']|fmt_dt }} |
+                    <strong>Cierre:</strong> {{ p['fecha_cierre']|fmt_dt }}
+                </p>
+
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-success" style="width: {{ avance }}%;">{{ avance }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if not hay_closed %}<div class="text-muted fst-italic ps-3">No closed projects.</div>{% endif %}
+</div>
+{% endblock %}

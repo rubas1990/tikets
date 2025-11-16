@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Mi Crecimiento Técnico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h3 class="fw-bold mb-3">🚀 Mi Crecimiento Técnico</h3>
+    <p class="text-muted">Basado en tus subtareas cerradas y sus atributos técnicos.</p>
+
+    <div class="row g-4">
+
+        <!-- Total de tareas cerradas -->
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-3">
+                <h6 class="text-muted">Tareas cerradas</h6>
+                <h2 class="fw-bold text-success">{{ total_cerradas }}</h2>
+            </div>
+        </div>
+
+        <!-- Métricas por KR -->
+        <div class="col-md-8">
+            <div class="card shadow-sm p-3">
+                <canvas id="krChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Dificultad cerrada -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <canvas id="difChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tecnologías -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <canvas id="tecChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const krData = {{ kr_stats| tojson }};
+    const difData = {{ dificultad_stats| tojson }};
+    const tecData = {{ tecnologia_stats| tojson }};
+
+    // 📊 KR Chart
+    new Chart(document.getElementById("krChart"), {
+        type: 'bar',
+        data: {
+            labels: krData.map(x => x.kr),
+            datasets: [{
+                label: "KR",
+                data: krData.map(x => x.cnt)
+            }]
+        }
+    });
+
+    // 📈 Dificultad Chart
+    new Chart(document.getElementById("difChart"), {
+        type: 'bar',
+        data: {
+            labels: difData.map(x => "Nivel " + x.dificultad),
+            datasets: [{
+                label: "Dificultad",
+                data: difData.map(x => x.cnt)
+            }]
+        }
+    });
+
+    // 🔧 Tecnología Chart
+    new Chart(document.getElementById("tecChart"), {
+        type: 'bar',
+        data: {
+            labels: tecData.map(x => x.tecnologia),
+            datasets: [{
+                label: "Tecnologías",
+                data: tecData.map(x => x.cnt)
+            }]
+        }
+    });
+</script>
+
+{% endblock %}

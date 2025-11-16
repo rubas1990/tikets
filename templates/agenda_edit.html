@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Mi Agenda — Reflexión y Ajuste Diario{% endblock %}
+
+{% block content %}
+<style>
+    .agenda-header {
+        background: linear-gradient(90deg, #0d6efd, #00bcd4);
+        color: white;
+        border-radius: 14px;
+        padding: 14px 22px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .agenda-header h4 {
+        font-weight: 600;
+        font-size: 1.3rem;
+    }
+
+    .card {
+        border-radius: 14px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        border: none;
+    }
+
+    .table thead th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+
+    input[type="time"],
+    input[type="text"],
+    select,
+    textarea {
+        border-radius: 8px !important;
+        padding: 6px 8px;
+    }
+
+    textarea {
+        resize: none;
+    }
+
+    .btn-save {
+        background: linear-gradient(90deg, #4caf50, #43a047);
+        color: white;
+        border: none;
+        border-radius: 8px;
+    }
+
+    .btn-save:hover {
+        opacity: 0.9;
+    }
+
+    .form-check-input {
+        transform: scale(1.3);
+    }
+
+    @media (max-width: 768px) {
+        .table {
+            font-size: 0.9rem;
+        }
+
+        .btn-save {
+            width: 100%;
+            margin-top: 10px;
+        }
+    }
+</style>
+
+<!-- 🔹 Encabezado -->
+<div class="agenda-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-journal-check me-2"></i>Mi Agenda Diaria</h4>
+    <a href="{{ url_for('agenda.agenda_view') }}" class="btn btn-light fw-bold text-primary">
+        ← Regresar a Agenda
+    </a>
+</div>
+
+<!-- 🔹 Tabla editable -->
+<div class="card mb-4">
+    <div class="card-body table-responsive">
+        <form method="post" action="{{ url_for('agenda.agenda_edit') }}">
+            <table class="table align-middle text-center">
+                <thead>
+                    <tr>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Actividad</th>
+                        <th>Tipo</th>
+                        <th>Fase</th>
+                        <th>✔</th>
+                        <th>Notas</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in actividades %}
+                    <tr>
+                        <input type="hidden" name="id" value="{{ a['id'] }}">
+                        <td><input type="time" name="hora_inicio" class="form-control form-control-sm text-center"
+                                value="{{ a['hora_inicio'] }}"></td>
+                        <td><input type="time" name="hora_fin" class="form-control form-control-sm text-center"
+                                value="{{ a['hora_fin'] }}"></td>
+                        <td><input type="text" name="actividad" class="form-control form-control-sm"
+                                value="{{ a['actividad'] }}"></td>
+                        <td>
+                            <select name="tipo" class="form-select form-select-sm">
+                                <option value="Físico" {% if a['tipo']=="Físico" %}selected{% endif %}>Físico</option>
+                                <option value="Mental" {% if a['tipo']=="Mental" %}selected{% endif %}>Mental</option>
+                                <option value="Técnico" {% if a['tipo']=="Técnico" %}selected{% endif %}>Técnico
+                                </option>
+                                <option value="Emocional" {% if a['tipo']=="Emocional" %}selected{% endif %}>Emocional
+                                </option>
+                                <option value="Personal" {% if a['tipo']=="Personal" %}selected{% endif %}>Personal
+                                </option>
+                            </select>
+                        </td>
+                        <td><span class="badge bg-primary">{{ a['fase'] or '—' }}</span></td>
+                        <td>
+                            <input class="form-check-input" type="checkbox" name="completado" value="1" {% if
+                                a['completado'] %}checked{% endif %}>
+                        </td>
+                        <td>
+                            <textarea name="notas" rows="1" class="form-control form-control-sm"
+                                placeholder="Notas o reflexiones...">{{ a['notas'] or '' }}</textarea>
+                        </td>
+                        <td>
+                            <button class="btn btn-save btn-sm px-3" type="submit">
+                                💾
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not actividades %}
+                    <tr>
+                        <td colspan="8" class="text-muted text-center">No hay actividades programadas.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </form>
+    </div>
+</div>
+<!-- 🌙 Reflexión del día -->
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="fw-bold mb-3"><i class="bi bi-stars me-2"></i>Reflexión del día</h5>
+        <form method="post" action="{{ url_for('agenda.agenda_edit') }}">
+            <textarea name="reflexion_dia" class="form-control mb-3" rows="3"
+                placeholder="¿Qué aprendiste hoy? ¿Qué mejorarías mañana?">{{ reflexion_texto or '' }}</textarea>
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary fw-bold px-4">💾 Guardar reflexión</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- 🧾 Historial de Reflexiones -->
+<!-- 🌙 Historial de Reflexiones (timeline) -->
+<div class="card shadow-sm mt-4 mb-5">
+    <div class="card-body">
+        <h5 class="fw-bold mb-4"><i class="bi bi-journal-text me-2"></i>Historial de Reflexiones</h5>
+
+        {% if historial %}
+        <div class="timeline position-relative ps-3 border-start border-2 border-primary">
+            {% for r in historial %}
+            <div class="timeline-item mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-primary text-white">{{ r['fecha'] }}</span>
+                    <small class="text-muted">{{ r['created_at'] }}</small>
+                </div>
+                <div class="p-3 rounded-3 bg-light shadow-sm border border-1 border-primary-subtle">
+                    <p class="mb-0 text-secondary" style="white-space: pre-line;">
+                        {{ r['reflexion'] }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aún no hay reflexiones guardadas.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .timeline::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--bs-primary);
+        opacity: 0.2;
+    }
+
+    .timeline-item::before {
+        content: "⬤";
+        color: var(--bs-primary);
+        position: absolute;
+        left: -13px;
+        font-size: 0.8rem;
+        top: 10px;
+    }
+</style>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        document.querySelectorAll("tr").forEach(row => {
+            const startInput = row.querySelector('input[name="hora_inicio"]');
+            const endInput = row.querySelector('input[name="hora_fin"]');
+
+            if (startInput && endInput) {
+                const [sh, sm] = startInput.value.split(":").map(Number);
+                const [eh, em] = endInput.value.split(":").map(Number);
+                const startMin = sh * 60 + sm;
+                const endMin = eh * 60 + em;
+
+                // 🔹 Resalta si el bloque actual está en curso
+                if (currentMinutes >= startMin && currentMinutes < endMin) {
+                    row.style.background = "linear-gradient(90deg, #e0f7fa, #b2ebf2)";
+                    row.style.transition = "background 0.5s ease";
+                }
+
+                // 🔹 También marca los pasados con un gris claro
+                if (currentMinutes > endMin) {
+                    row.style.opacity = "0.6";
+                }
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}
